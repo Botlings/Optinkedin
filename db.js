@@ -1,58 +1,81 @@
-/**
- * Initialisation de la base de données SQLite via better-sqlite3.
- * Ce module crée les tables si elles n'existent pas (migrations simples).
- *
- * Tables :
- *  - users       : données LinkedIn + token + statut paiement
- *  - scores      : historique des scores générés par l'IA
- */
-
-const Database = require('better-sqlite3');
+const initSqlJs = require('sql.js');
+const fs = require('fs');
 const path = require('path');
 
-// HYPOTHÈSE: Le fichier DB est stocké à la racine du projet.
-// En production, pointer vers un volume persistant.
-const DB_PATH = path.join(__dirname, 'optinkedin.db');
+const DB_PATH = path.join(__dirname, 'data', 'optinkedin.db');
 
-const db = new Database(DB_PATH);
+let _db = null;
 
-// Activer le mode WAL pour de meilleures performances en lecture concurrente
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+async function getDb() {
+  if (_db) return _db;
 
-// ─── Migrations / création des tables ────────────────────────────────────────
+  const SQL = await initSqlJs();
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    linkedin_id     TEXT    NOT NULL UNIQUE,
-    access_token    TEXT    NOT NULL,
-    display_name    TEXT,
-    email           TEXT,
-    photo_url       TEXT,
-    headline        TEXT,
-    vanity_name     TEXT,
-    -- Indique si l'utilisateur a acheté l'accès aux recommandations complètes
-    has_paid        INTEGER NOT NULL DEFAULT 0,
-    -- Date du paiement (NULL si pas encore payé)
-    paid_at         TEXT,
-    created_at      TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
-  );
+  // Charger le fichier existant ou créer une nouvelle base
+  if (fs.existsSync(DB_PATH)) {
+    const fileBuffer = fs.readFileSync(DB_PATH);
+    _db = new SQL.Database(fileBuffer);
+  } else {
+    // Créer le dossier data si absent
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+    _db = new SQL.Database();
+  }
 
-  CREATE TABLE IF NOT EXISTS scores (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    -- Score sur 100 calculé par l'IA
-    score           INTEGER NOT NULL,
-    -- Résumé court renvoyé à tous les utilisateurs (gratuit)
-    summary         TEXT,
-    -- Recommandations détaillées (réservées aux utilisateurs ayant payé)
-    recommendations TEXT,
-    -- Données brutes du profil LinkedIn au moment du calcul (JSON)
-    profile_snapshot TEXT,
-    created_at      TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
-  );
-`);
+  // Initialisation du schéma
+  _db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      linkedin_id TEXT UNIQUE NOT NULL,
+      name TEXT,
+      email TEXT,
+      access_token TEXT,
+      score INTEGER,
+      paid INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
 
-module.exports = db;
+  persist();
+  return _db;
+}
+
+/** Persiste la base en mémoire sur disque */
+function persist() {
+  if (!_db) return;
+  const data = _db.export();
+  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+  fs.writeFileSync(DB_PATH, Buffer.from(data));
+}
+
+/** Wrapper exec (DDL/DML sans résultat) */
+function run(sql, params = []) {
+  _db.run(sql, params);
+  persist();
+}
+
+/** Retourne la première ligne ou undefined */
+function get(sql, params = []) {
+  const stmt = _db.prepare(sql);
+  stmt.bind(params);
+  if (stmt.step()) {
+    const row = stmt.getAsObject();
+    stmt.free();
+    return row;
+  }
+  stmt.free();
+  return undefined;
+}
+
+/** Retourne toutes les lignes */
+function all(sql, params = []) {
+  const results = [];
+  const stmt = _db.prepare(sql);
+  stmt.bind(params);
+  while (stmt.step()) {
+    results.push(stmt.getAsObject());
+  }
+  stmt.free();
+  return results;
+}
+
+module.exports = { getDb, run, get, all, persist };
