@@ -3,1395 +3,1396 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OptinkedIn — Évaluez votre profil LinkedIn gratuitement</title>
-  <meta name="description" content="Obtenez une note sur 100 pour votre profil LinkedIn et des axes d'amélioration concrets. Gratuit et instantané." />
+  <title>OptinkedIn — Évaluez et optimisez votre profil LinkedIn</title>
+  <meta name="description" content="Obtenez une note sur 100 pour votre profil LinkedIn et des recommandations IA personnalisées pour attirer plus de recruteurs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    /* ── Reset & variables ── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* ─── Reset & Base ─────────────────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
-      --blue-li:   #0A66C2;
-      --blue-dark: #004182;
-      --blue-light:#EBF3FB;
-      --green:     #057642;
-      --orange:    #E76F00;
-      --red:       #CC1016;
-      --gray-50:   #F8FAFC;
-      --gray-100:  #F1F5F9;
-      --gray-200:  #E2E8F0;
-      --gray-400:  #94A3B8;
-      --gray-600:  #475569;
-      --gray-800:  #1E293B;
-      --white:     #FFFFFF;
-      --radius:    12px;
-      --shadow:    0 4px 24px rgba(0,0,0,.08);
-      --shadow-lg: 0 8px 48px rgba(0,0,0,.12);
-      --transition: .2s ease;
+      --blue-deep:    #0A66C2;
+      --blue-mid:     #1a7fd4;
+      --blue-light:   #4fa8f5;
+      --blue-pale:    #e8f3fc;
+      --indigo:       #4f46e5;
+      --indigo-light: #818cf8;
+      --white:        #ffffff;
+      --gray-50:      #f9fafb;
+      --gray-100:     #f3f4f6;
+      --gray-200:     #e5e7eb;
+      --gray-400:     #9ca3af;
+      --gray-600:     #4b5563;
+      --gray-800:     #1f2937;
+      --gray-900:     #111827;
+      --green:        #10b981;
+      --gradient-hero: linear-gradient(135deg, #0A66C2 0%, #4f46e5 100%);
+      --shadow-card:  0 4px 24px rgba(10, 102, 194, 0.10);
+      --shadow-hover: 0 8px 36px rgba(10, 102, 194, 0.18);
+      --radius-card:  14px;
+      --max-width:    1100px;
     }
+
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--gray-50);
+      font-family: 'Plus Jakarta Sans', sans-serif;
       color: var(--gray-800);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-
-    /* ── Header ── */
-    header {
       background: var(--white);
-      border-bottom: 1px solid var(--gray-200);
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      position: sticky;
-      top: 0;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Animations ───────────────────────────────────────────────── */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes pulseBadge {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.06); }
+    }
+
+    @keyframes floatScore {
+      0%, 100% { transform: translateY(0px) rotate(-3deg); }
+      50%       { transform: translateY(-10px) rotate(-3deg); }
+    }
+
+    /* ─── Layout helpers ───────────────────────────────────────────── */
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section {
+      padding: 96px 0;
+    }
+
+    /* ─── NAV ──────────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
       z-index: 100;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--gray-200);
     }
 
-    .logo {
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      text-decoration: none;
+      justify-content: space-between;
     }
 
-    .logo-icon {
-      width: 36px;
-      height: 36px;
-      background: var(--blue-li);
+    .nav-logo {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--blue-deep);
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-logo span {
+      color: var(--indigo);
+    }
+
+    .nav-cta {
+      background: var(--gradient-hero);
+      color: var(--white);
+      border: none;
+      padding: 10px 22px;
       border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s;
+      display: inline-block;
+    }
+
+    .nav-cta:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    /* ─── HERO ─────────────────────────────────────────────────────── */
+    #hero {
+      padding: 0;
+      min-height: 100vh;
+      background: var(--gradient-hero);
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* motif géométrique décoratif */
+    #hero::before {
+      content: '';
+      position: absolute;
+      top: -120px; right: -120px;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      pointer-events: none;
+    }
+
+    #hero::after {
+      content: '';
+      position: absolute;
+      bottom: -180px; left: -80px;
+      width: 480px; height: 480px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+      width: 100%;
+      padding-top: 64px; /* nav offset */
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 24px;
+      animation: pulseBadge 3s ease-in-out infinite;
+    }
+
+    .hero-headline {
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.15;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+      animation: fadeInUp 0.7s ease both;
+    }
+
+    .hero-headline em {
+      font-style: normal;
+      text-decoration: underline;
+      text-decoration-color: rgba(255,255,255,0.45);
+      text-underline-offset: 5px;
+    }
+
+    .hero-sub {
+      font-size: 1.15rem;
+      color: rgba(255,255,255,0.82);
+      margin-bottom: 36px;
+      max-width: 500px;
+      animation: fadeInUp 0.7s 0.15s ease both;
+    }
+
+    .hero-form {
+      display: flex;
+      gap: 10px;
+      animation: fadeInUp 0.7s 0.25s ease both;
+    }
+
+    .hero-input {
+      flex: 1;
+      padding: 15px 18px;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.12);
+      color: var(--white);
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .hero-input::placeholder {
+      color: rgba(255,255,255,0.55);
+    }
+
+    .hero-input:focus {
+      border-color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.18);
+    }
+
+    .btn-primary {
+      background: var(--white);
+      color: var(--blue-deep);
+      border: none;
+      padding: 15px 28px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+    }
+
+    .hero-trust {
+      margin-top: 20px;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.6);
+      animation: fadeInUp 0.7s 0.35s ease both;
+    }
+
+    .hero-trust strong {
+      color: rgba(255,255,255,0.9);
+    }
+
+    /* Carte score flottante */
+    .hero-visual {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 0.9s 0.4s ease both;
+    }
+
+    .score-card {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.22);
+      backdrop-filter: blur(16px);
+      border-radius: 20px;
+      padding: 36px 40px;
+      text-align: center;
+      animation: floatScore 4s ease-in-out infinite;
+      min-width: 260px;
+    }
+
+    .score-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.65);
+      margin-bottom: 12px;
+    }
+
+    .score-number {
+      font-size: 5.5rem;
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1;
+      letter-spacing: -3px;
+    }
+
+    .score-number sup {
+      font-size: 2rem;
+      vertical-align: super;
+      opacity: 0.7;
+    }
+
+    .score-bar-wrap {
+      margin: 18px 0 14px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      width: 74%;
+      background: linear-gradient(90deg, #10b981, #4fa8f5);
+      border-radius: 999px;
+    }
+
+    .score-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 16px;
+      text-align: left;
+    }
+
+    .score-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.82);
+    }
+
+    .score-item-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-green  { background: #10b981; }
+    .dot-orange { background: #f59e0b; }
+    .dot-red    { background: #ef4444; }
+
+    /* ─── SOCIAL PROOF BAND ────────────────────────────────────────── */
+    #social-proof-band {
+      padding: 28px 0;
+      background: var(--gray-50);
+      border-top: 1px solid var(--gray-200);
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .band-inner {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--white);
-      font-weight: 800;
-      font-size: 18px;
-      letter-spacing: -1px;
-    }
-
-    .logo-text {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--gray-800);
-    }
-
-    .logo-text span { color: var(--blue-li); }
-
-    /* ── Hero ── */
-    .hero {
-      background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue-li) 100%);
-      color: var(--white);
-      padding: 64px 24px;
-      text-align: center;
-    }
-
-    .hero h1 {
-      font-size: clamp(28px, 5vw, 48px);
-      font-weight: 800;
-      line-height: 1.15;
-      margin-bottom: 16px;
-    }
-
-    .hero h1 em {
-      font-style: normal;
-      color: #7DD3FC;
-    }
-
-    .hero p {
-      font-size: clamp(16px, 2.5vw, 20px);
-      opacity: .88;
-      max-width: 580px;
-      margin: 0 auto 32px;
-    }
-
-    .badge-free {
-      display: inline-block;
-      background: rgba(255,255,255,.18);
-      border: 1px solid rgba(255,255,255,.35);
-      border-radius: 999px;
-      padding: 6px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: .4px;
-      margin-bottom: 24px;
-    }
-
-    /* ── Main layout ── */
-    main {
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 40px 16px 80px;
-    }
-
-    /* ── Card ── */
-    .card {
-      background: var(--white);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 32px;
-      margin-bottom: 24px;
-    }
-
-    .card h2 {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      color: var(--gray-800);
-    }
-
-    .card .subtitle {
-      color: var(--gray-600);
-      font-size: 14px;
-      margin-bottom: 24px;
-    }
-
-    /* ── Form ── */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    @media (max-width: 560px) {
-      .form-grid { grid-template-columns: 1fr; }
-      .card { padding: 20px; }
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .form-group.full { grid-column: 1 / -1; }
-
-    label {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--gray-600);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    label .weight {
-      font-size: 11px;
-      font-weight: 500;
-      background: var(--blue-light);
-      color: var(--blue-li);
-      border-radius: 999px;
-      padding: 1px 7px;
-    }
-
-    label .required {
-      color: var(--red);
-      font-size: 11px;
-    }
-
-    input[type="text"],
-    input[type="number"],
-    input[type="url"],
-    select,
-    textarea {
-      padding: 10px 14px;
-      border: 1.5px solid var(--gray-200);
-      border-radius: 8px;
-      font-size: 15px;
-      color: var(--gray-800);
-      background: var(--white);
-      transition: border-color var(--transition), box-shadow var(--transition);
-      width: 100%;
-      font-family: inherit;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--blue-li);
-      box-shadow: 0 0 0 3px rgba(10,102,194,.12);
-    }
-
-    textarea { resize: vertical; min-height: 80px; }
-
-    .toggle-group {
-      display: flex;
-      gap: 8px;
+      gap: 48px;
       flex-wrap: wrap;
     }
 
-    .toggle-btn {
-      padding: 8px 16px;
-      border-radius: 8px;
-      border: 1.5px solid var(--gray-200);
-      background: var(--white);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--gray-600);
-      cursor: pointer;
-      transition: all var(--transition);
-      user-select: none;
-    }
-
-    .toggle-btn:hover { border-color: var(--blue-li); color: var(--blue-li); }
-
-    .toggle-btn.active {
-      background: var(--blue-light);
-      border-color: var(--blue-li);
-      color: var(--blue-li);
-    }
-
-    /* ── CTA bouton analyse ── */
-    .btn-analyze {
-      width: 100%;
-      margin-top: 24px;
-      padding: 16px;
-      background: var(--blue-li);
-      color: var(--white);
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      letter-spacing: .2px;
-    }
-
-    .btn-analyze:hover {
-      background: var(--blue-dark);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(10,102,194,.35);
-    }
-
-    .btn-analyze:active { transform: translateY(0); }
-
-    .btn-analyze svg { flex-shrink: 0; }
-
-    /* ── Score section ── */
-    #score-section { display: none; }
-
-    /* ── Gauge ── */
-    .gauge-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding: 24px 0 16px;
-    }
-
-    .gauge-svg-container {
-      position: relative;
-      width: 220px;
-      height: 120px;
-    }
-
-    .gauge-svg-container svg {
-      overflow: visible;
-    }
-
-    .gauge-score-label {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
+    .band-stat {
       text-align: center;
     }
 
-    .gauge-score-number {
-      font-size: 52px;
+    .band-stat strong {
+      display: block;
+      font-size: 1.6rem;
       font-weight: 800;
-      line-height: 1;
-      color: var(--gray-800);
+      color: var(--blue-deep);
+      letter-spacing: -0.5px;
     }
 
-    .gauge-score-max {
-      font-size: 18px;
-      color: var(--gray-400);
+    .band-stat span {
+      font-size: 0.82rem;
+      color: var(--gray-600);
       font-weight: 500;
     }
 
-    .gauge-label {
-      font-size: 16px;
+    .band-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--gray-200);
+    }
+
+    /* ─── FEATURES ─────────────────────────────────────────────────── */
+    #features {
+      background: var(--white);
+    }
+
+    .section-eyebrow {
+      font-size: 0.78rem;
       font-weight: 700;
-      letter-spacing: .3px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--blue-deep);
+      margin-bottom: 12px;
     }
 
-    .gauge-sublabel {
-      font-size: 13px;
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 800;
+      color: var(--gray-900);
+      letter-spacing: -0.8px;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      font-size: 1.05rem;
       color: var(--gray-600);
-      text-align: center;
-      max-width: 300px;
+      max-width: 560px;
     }
 
-    /* ── Score breakdown bars ── */
-    .breakdown-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      margin-top: 8px;
+    .section-header {
+      margin-bottom: 60px;
     }
 
-    .breakdown-item {
+    .features-grid {
       display: grid;
-      grid-template-columns: 160px 1fr 46px;
-      align-items: center;
-      gap: 12px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
     }
 
-    @media (max-width: 560px) {
-      .breakdown-item {
-        grid-template-columns: 1fr 60px;
-        grid-template-rows: auto auto;
-      }
-      .breakdown-item .bar-wrap { grid-column: 1 / -1; }
+    .feature-card {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-card);
+      padding: 32px 28px;     transition: box-shadow 0.25s, transform 0.25s, border-color 0.25s;
     }
 
-    .breakdown-item .criterion-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--gray-700);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .feature-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-4px);
+      border-color: var(--blue-light);
     }
 
-    .bar-wrap {
-      background: var(--gray-100);
-      border-radius: 999px;
-      height: 10px;
-      overflow: hidden;
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 18px;
+      display: block;
     }
 
-    .bar-fill {
-      height: 100%;
-      border-radius: 999px;
-      transition: width 1.2s cubic-bezier(.4,0,.2,1);
-    }
-
-    .breakdown-item .score-frac {
-      font-size: 12px;
+    .feature-title {
+      font-size: 1.1rem;
       font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 10px;
+    }
+
+    .feature-desc {
+      font-size: 0.92rem;
       color: var(--gray-600);
-      text-align: right;
+      line-height: 1.65;
+    }
+
+    /* ─── HOW IT WORKS ─────────────────────────────────────────────── */
+    #how-it-works {
+      background: var(--blue-pale);
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      position: relative;
+    }
+
+    /* ligne de connexion entre étapes */
+    .steps-grid::before {
+      content: '';
+      position: absolute;
+      top: 36px;
+      left: calc(16.66% + 20px);
+      right: calc(16.66% + 20px);
+      height: 2px;
+      background: linear-gradient(90deg, var(--blue-deep), var(--indigo));
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    .step-card {
+      background: var(--white);
+      border-radius: var(--radius-card);
+      padding: 36px 28px;
+      text-align: center;
+      box-shadow: var(--shadow-card);
+      transition: box-shadow 0.25s, transform 0.25s;
+    }
+
+    .step-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-4px);
+    }
+
+    .step-number {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: var(--gradient-hero);
+      color: var(--white);
+      font-size: 1.2rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+
+    .step-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 10px;
+    }
+
+    .step-desc {
+      font-size: 0.9rem;
+      color: var(--gray-600);
+      line-height: 1.65;
+    }
+
+    /* ─── PRICING ──────────────────────────────────────────────────── */
+    #pricing {
+      background: var(--white);
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    .pricing-card {
+      border-radius: var(--radius-card);
+      padding: 40px 36px;
+      border: 2px solid var(--gray-200);
+      background: var(--white);
+      transition: box-shadow 0.25s, transform 0.25s;
+      position: relative;
+    }
+
+    .pricing-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-4px);
+    }
+
+    .pricing-card.featured {
+      border-color: var(--blue-deep);
+      background: linear-gradient(160deg, #f0f7ff 0%, #fff 100%);
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -14px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--gradient-hero);
+      color: var(--white);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 999px;
       white-space: nowrap;
     }
 
-    /* ── Axes d'amélioration ── */
-    .improvements-list {
+    .pricing-plan {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--blue-deep);
+      margin-bottom: 12px;
+    }
+
+    .pricing-price {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      letter-spacing: -1.5px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .pricing-price sup {
+      font-size: 1.3rem;
+      vertical-align: super;
+      font-weight: 700;
+    }
+
+    .pricing-price-note {
+      font-size: 0.82rem;
+      color: var(--gray-400);
+      margin-bottom: 24px;
+    }
+
+    .pricing-divider {
+      height: 1px;
+      background: var(--gray-200);
+      margin: 24px 0;
+    }
+
+    .pricing-features-list {
+      list-style: none;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      margin-top: 8px;
+      margin-bottom: 32px;
     }
 
-    .improvement-item {
+    .pricing-features-list li {
       display: flex;
-      gap: 14px;
       align-items: flex-start;
-      padding: 14px 16px;
-      border-radius: 10px;
-      border-left: 4px solid transparent;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--gray-600);
     }
 
-    .improvement-item.priority-high {
-      background: #FFF5F5;
-      border-left-color: var(--red);
-    }
-
-    .improvement-item.priority-medium {
-      background: #FFFBF0;
-      border-left-color: var(--orange);
-    }
-
-    .improvement-item.priority-low {
-      background: #F0FAF4;
-      border-left-color: var(--green);
-    }
-
-    .improvement-icon {
-      font-size: 20px;
+    .pricing-features-list li .check {
+      color: var(--green);
+      font-size: 1rem;
       flex-shrink: 0;
       margin-top: 1px;
     }
 
-    .improvement-content { flex: 1; }
-
-    .improvement-content strong {
-      display: block;
-      font-size: 14px;
-      font-weight: 700;
-      margin-bottom: 3px;
-      color: var(--gray-800);
-    }
-
-    .improvement-content p {
-      font-size: 13px;
-      color: var(--gray-600);
-      line-height: 1.5;
-    }
-
-    .priority-tag {
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .6px;
-      border-radius: 999px;
-      padding: 2px 8px;
+    .pricing-features-list li .cross {
+      color: var(--gray-400);
+      font-size: 1rem;
       flex-shrink: 0;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
-    .priority-high   .priority-tag { background: var(--red);    color: white; }
-    .priority-medium .priority-tag { background: var(--orange);  color: white; }
-    .priority-low    .priority-tag { background: var(--green);   color: white; }
-
-    /* ── Premium CTA block ── */
-    .premium-cta {
-      background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue-li) 100%);
-      border-radius: var(--radius);
-      padding: 36px 32px;
-      color: var(--white);
+    .btn-secondary {
+      display: block;
+      width: 100%;
       text-align: center;
+      padding: 14px;
+      border-radius: 10px;
+      border: 2px solid var(--blue-deep);
+      background: transparent;
+      color: var(--blue-deep);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s, transform 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: var(--blue-deep);
+      color: var(--white);
+      transform: translateY(-2px);
+    }
+
+    .btn-featured {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      background: var(--gradient-hero);
+      color: var(--white);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-featured:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);     box-shadow: 0 6px 24px rgba(10, 102, 194, 0.30);
+    }
+
+    /* ─── TESTIMONIALS ─────────────────────────────────────────────── */
+    #testimonials {
+      background: var(--gray-50);
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .testimonial-card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-card);
+      padding: 32px 28px;
+      transition: box-shadow 0.25s, transform 0.25s;
+    }
+
+    .testimonial-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-4px);
+    }
+
+    .testimonial-stars {
+      font-size: 1rem;
+      color: #f59e0b;
+      margin-bottom: 16px;
+      letter-spacing: 2px;
+    }
+
+    .testimonial-quote {
+      font-size: 0.95rem;
+      color: var(--gray-600);
+      line-height: 1.7;
       margin-bottom: 24px;
+      font-style: italic;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .testimonial-avatar {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: var(--gradient-hero);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .testimonial-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .testimonial-role {
+      font-size: 0.78rem;
+      color: var(--gray-400);
+    }
+
+    /* ─── CTA FINAL ─────────────────────────────────────────────────── */
+    #cta-final {
+      background: var(--gradient-hero);
+      padding: 100px 0;
+      text-align: center;
       position: relative;
       overflow: hidden;
     }
 
-    .premium-cta::before {
+    #cta-final::before {
       content: '';
       position: absolute;
-      top: -40px; right: -40px;
-      width: 180px; height: 180px;
-      background: rgba(255,255,255,.06);
+      top: -80px; right: -80px;
+      width: 400px; height: 400px;
       border-radius: 50%;
-    }
-
-    .premium-cta::after {
-      content: '';
-      position: absolute;
-      bottom: -60px; left: -30px;
-      width: 220px; height: 220px;
-      background: rgba(255,255,255,.04);
-      border-radius: 50%;
-    }
-
-    .premium-cta h2 {
-      font-size: 24px;
-      font-weight: 800;
-      margin-bottom: 10px;
-      position: relative;
-      z-index: 1;
-      color: var(--white);
-    }
-
-    .premium-cta p {
-      font-size: 15px;
-      opacity: .88;
-      max-width: 480px;
-      margin: 0 auto 24px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .premium-features {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 28px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .premium-feature-pill {
-      background: rgba(255,255,255,.15);
-      border: 1px solid rgba(255,255,255,.3);
-      border-radius: 999px;
-      padding: 6px 14px;
-      font-size: 13px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn-premium {
-      display: inline-block;
-      background: var(--white);
-      color: var(--blue-dark);
-      padding: 14px 36px;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 800;
-      text-decoration: none;
-      cursor: pointer;
-      border: none;
-      transition: transform var(--transition), box-shadow var(--transition);```
-      position: relative;
-      z-index: 1;
-    }
-
-    .btn-premium:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(0,0,0,.25);
-    }
-
-    .premium-price {
-      font-size: 13px;
-      opacity: .75;
-      margin-top: 12px;
-      position: relative;
-      z-index: 1;
-    }
-
-    /* ── Confetti score célébration ── */
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .animate-in {
-      animation: fadeInUp .45s ease both;
-    }
-
-    .animate-in-delay-1 { animation-delay: .1s; }
-    .animate-in-delay-2 { animation-delay: .2s; }
-    .animate-in-delay-3 { animation-delay: .3s; }
-
-    /* ── Divider ── */
-    .section-divider {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 8px 0 20px;
-      color: var(--gray-400);
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .8px;
-    }
-
-    .section-divider::before,
-    .section-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--gray-200);
-    }
-
-    /* ── Score band colors ── */
-    .band-excellent { color: #057642; }
-    .band-good      { color: #0A66C2; }
-    .band-average   { color: #E76F00; }
-    .band-weak      { color: #CC1016; }
-
-    /* ── Tooltip ── */
-    .info-tip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: var(--gray-200);
-      color: var(--gray-600);
-      font-size: 10px;
-      font-weight: 800;
-      cursor: help;
-      position: relative;
-    }
-
-    .info-tip:hover::after {
-      content: attr(data-tip);
-      position: absolute;
-      left: 50%;
-      bottom: 120%;
-      transform: translateX(-50%);
-      background: var(--gray-800);
-      color: white;
-      font-size: 11px;
-      font-weight: 500;
-      padding: 6px 10px;
-      border-radius: 6px;
-      white-space: nowrap;
-      max-width: 220px;
-      white-space: normal;
-      width: max-content;
-      max-width: 200px;
-      z-index: 10;
+      background: rgba(255,255,255,0.05);
       pointer-events: none;
     }
 
-    /* ── Retake button ── */
-    .btn-retake {
-      background: none;
-      border: 1.5px solid var(--gray-200);
-      border-radius: 8px;
-      padding: 10px 20px;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--gray-600);
-      cursor: pointer;
-      transition: all var(--transition);
+    #cta-final::after {
+      content: '';
+      position: absolute;
+      bottom: -100px; left: -60px;
+      width: 350px; height: 350px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      pointer-events: none;
+    }
+
+    .cta-final-title {
+      font-size: clamp(1.9rem, 4vw, 3rem);
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -1px;
+      line-height: 1.2;
+      margin-bottom: 18px;
+    }
+
+    .cta-final-sub {
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.78);
+      margin-bottom: 40px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta-final-form {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
     }
 
-    .btn-retake:hover {
-      border-color: var(--blue-li);
-      color: var(--blue-li);
+    .cta-final-input {
+      padding: 15px 20px;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.12);
+      color: var(--white);
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      min-width: 300px;
+      transition: border-color 0.2s, background 0.2s;
     }
 
-    .score-header-row {
+    .cta-final-input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .cta-final-input:focus {
+      border-color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.18);
+    }
+
+    .cta-trust-note {
+      margin-top: 18px;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.55);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ─── FOOTER ────────────────────────────────────────────────────── */
+    footer {
+      background: var(--gray-900);
+      color: var(--gray-400);
+      padding: 48px 0 32px;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 40px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .footer-brand {
+      max-width: 280px;
+    }
+
+    .footer-logo {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--white);
+      text-decoration: none;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .footer-logo span {
+      color: var(--indigo-light);
+    }
+
+    .footer-tagline {
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+
+    .footer-links-group h4 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--white);
+      margin-bottom: 14px;
+    }
+
+    .footer-links-group ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .footer-links-group a {
+      font-size: 0.88rem;
+      color: var(--gray-400);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links-group a:hover {
+      color: var(--white);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 12px;
-      margin-bottom: 4px;
     }
 
-    /* ── Footer ── */
-    footer {
-      text-align: center;
-      padding: 32px 16px;
+    .footer-bottom p {
+      font-size: 0.8rem;
+    }
+
+    .footer-bottom-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-bottom-links a {
+      font-size: 0.8rem;
       color: var(--gray-400);
-      font-size: 13px;
-      border-top: 1px solid var(--gray-200);
+      text-decoration: none;
+      transition: color 0.2s;
     }
 
-    footer a { color: var(--gray-400); text-decoration: underline; }
+    .footer-bottom-links a:hover {
+      color: var(--white);
+    }
+
+    /* ─── RESPONSIVE ────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .hero-inner {
+        grid-template-columns: 1fr;
+        gap: 48px;
+        text-align: center;
+        padding-top: 80px;
+      }
+
+      .hero-sub {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-form {
+        flex-direction: column;
+      }
+
+      .hero-visual {
+        order: -1;
+      }
+
+      .score-card {
+        min-width: unset;
+        width: 100%;
+        max-width: 300px;
+        animation: none;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .steps-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .steps-grid::before {
+        display: none;
+      }
+
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .testimonials-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .band-inner {
+        gap: 28px;
+      }
+
+      .band-divider {
+        display: none;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        gap: 32px;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .cta-final-input {
+        min-width: unset;
+        width: 100%;
+      }
+
+      .cta-final-form {
+        flex-direction: column;
+        align-items: center;
+        padding: 0 16px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      section {
+        padding: 72px 0;
+      }
+
+      .hero-headline {
+        font-size: 2rem;
+      }
+
+      .score-number {
+        font-size: 4rem;
+      }
+
+      .pricing-card {
+        padding: 32px 24px;
+      }
+    }
   </style>
 </head>
 <body>
 
-<!-- ── HEADER ── -->
-<header>
-  <a href="/" class="logo">
-    <div class="logo-icon">OL</div>
-    <span class="logo-text">Optin<span>kedIn</span></span>
-  </a>
-</header>
+  <!-- ─── NAV ─────────────────────────────────────────────────────── -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">Optin<span>kedIn</span></a>
+      <a href="#hero" class="nav-cta">Analyser mon profil →</a>
+    </div>
+  </nav>
 
-<!-- ── HERO ── -->
-<section class="hero">
-  <div class="badge-free">✦ 100% Gratuit — Aucun compte requis</div>
-  <h1>Votre profil LinkedIn vaut <em>combien ?</em></h1>
-  <p>Obtenez une note sur 100 en 60 secondes et découvrez exactement quoi améliorer pour attirer les recruteurs.</p>
-</section>
+  <!-- ─── HERO ─────────────────────────────────────────────────────── -->
+  <section id="hero">
+    <div class="container">
+      <div class="hero-inner">
 
-<!-- ── MAIN ── -->
-<main>
-
-  <!-- Formulaire d'évaluation -->
-  <div class="card" id="form-card">
-    <h2>📋 Renseignez votre profil</h2>
-    <p class="subtitle">Répondez honnêtement pour obtenir un score précis. Aucune donnée n'est stockée.</p>
-
-    <form id="profile-form" novalidate>
-      <div class="form-grid">
-
-        <!-- Photo de profil -->
-        <div class="form-group">
-          <label>
-            📸 Photo de profil
-            <span class="weight">15 pts</span>
-            <span class="info-tip" data-tip="Une photo professionnelle augmente les vues de profil de 21x">i</span>
-          </label>
-          <div class="toggle-group" data-field="photo">
-            <button type="button" class="toggle-btn" data-value="0">Aucune</button>
-            <button type="button" class="toggle-btn" data-value="7">Informelle</button>
-            <button type="button" class="toggle-btn active" data-value="15">Professionnelle</button>
+        <div class="hero-content">
+          <div class="hero-badge">
+            ✨ Gratuit &amp; sans inscription
           </div>
-        </div>
-
-        <!-- Bannière -->
-        <div class="form-group">
-          <label>
-            🖼️ Bannière personnalisée
-            <span class="weight">5 pts</span>
-            <span class="info-tip" data-tip="Une bannière de marque renforce votre identité professionnelle">i</span>
-          </label>
-          <div class="toggle-group" data-field="banner">
-            <button type="button" class="toggle-btn" data-value="0">Par défaut</button>
-            <button type="button" class="toggle-btn active" data-value="5">Personnalisée</button>
-          </div>
-        </div>
-
-        <!-- Titre / Headline -->
-        <div class="form-group full">
-          <label>
-            ✍️ Titre (headline)
-            <span class="weight">20 pts</span>
-            <span class="required">*</span>
-            <span class="info-tip" data-tip="Le titre est le 1er élément lu par les recruteurs. Soyez précis et accrocheur.">i</span>
-          </label>
-          <input
-            type="text"
-            id="headline"
-            placeholder="Ex : Développeur Full-Stack React/Node | Open to work"
-            maxlength="220"
-            required
-          />
-          <small id="headline-hint" style="color:var(--gray-400);font-size:12px;margin-top:2px;">0 / 220 caractères</small>
-        </div>
-
-        <!-- Résumé / About -->
-        <div class="form-group full">
-          <label>
-            📝 Section "À propos"
-            <span class="weight">15 pts</span>
-            <span class="info-tip" data-tip="Un résumé complet de 200+ mots avec mots-clés améliore l'indexation LinkedIn.">i</span>
-          </label>
-          <textarea
-            id="about"
-            placeholder="Collez ou décrivez votre résumé LinkedIn (laissez vide si absent)…"
-            maxlength="2600"
-          ></textarea>
-          <small id="about-hint" style="color:var(--gray-400);font-size:12px;margin-top:2px;">0 / 2600 caractères</small>
-        </div>
-
-        <!-- Expériences -->
-        <div class="form-group">
-          <label>
-            💼 Nombre d'expériences
-            <span class="weight">15 pts</span>
-            <span class="info-tip" data-tip="Chaque expérience avec description détaillée renforce votre profil.">i</span>
-          </label>
-          <input type="number" id="experiences" min="0" max="30" placeholder="Ex : 3" value="" />
-        </div>
-
-        <!-- Expériences avec description -->
-        <div class="form-group">
-          <label>
-            📄 Expériences avec description
-            <span class="weight">5 pts</span>
-            <span class="info-tip" data-tip="Les recruteurs veulent lire vos missions et réalisations concrètes.">i</span>
-          </label>
-          <div class="toggle-group" data-field="expDesc">
-            <button type="button" class="toggle-btn" data-value="0">Aucune</button>
-            <button type="button" class="toggle-btn" data-value="2">Quelques-unes</button>
-            <button type="button" class="toggle-btn active" data-value="5">Toutes</button>
-          </div>
-        </div>
-
-        <!-- Formations -->
-        <div class="form-group">
-          <label>
-            🎓 Formations renseignées
-            <span class="weight">5 pts</span>
-          </label>
-          <div class="toggle-group" data-field="education">
-            <button type="button" class="toggle-btn" data-value="0">Aucune</button>
-            <button type="button" class="toggle-btn" data-value="3">1–2</button>
-            <button type="button" class="toggle-btn active" data-value="5">3+</button>
-          </div>
-        </div>
-
-        <!-- Compétences -->
-        <div class="form-group">
-          <label>
-            🛠️ Nombre de compétences
-            <span class="weight">10 pts</span>
-            <span class="info-tip" data-tip="LinkedIn recommande au moins 5 compétences. 10+ est optimal.">i</span>
-          </label>
-          <input type="number" id="skills" min="0" max="50" placeholder="Ex : 12" value="" />
-        </div>
-
-        <!-- Recommandations reçues -->
-        <div class="form-group">
-          <label>
-            ⭐ Recommandations reçues
-            <span class="weight">10 pts</span>
-            <span class="info-tip" data-tip="Les recommandations sont une preuve sociale très valorisée par les recruteurs.">i</span>
-          </label>
-          <input type="number" id="recommendations" min="0" max="100" placeholder="Ex : 2" value="" />
-        </div>
-
-        <!-- URL personnalisée -->
-        <div class="form-group">
-          <label>
-            🔗 URL de profil personnalisée
-            <span class="weight">3 pts</span>
-            <span class="info-tip" data-tip="Ex : linkedin.com/in/prenom-nom — Améliore votre référencement personnel.">i</span>
-          </label>
-          <div class="toggle-group" data-field="customUrl">
-            <button type="button" class="toggle-btn" data-value="0">Non</button>
-            <button type="button" class="toggle-btn active" data-value="3">Oui</button>
-          </div>
-        </div>
-
-        <!-- Open to Work -->
-        <div class="form-group">
-          <label>
-            🟢 Cadre "Open to Work"
-            <span class="weight">2 pts</span>
-            <span class="info-tip" data-tip="Active le filtre recruteur et augmente la visibilité si en recherche d'emploi.">i</span>
-          </label>
-          <div class="toggle-group" data-field="openToWork">
-            <button type="button" class="toggle-btn active" data-value="0">Non applicable</button>
-            <button type="button" class="toggle-btn" data-value="2">Activé</button>
-          </div>
-        </div>
-
-      </div><!-- /form-grid -->
-
-      <button type="submit" class="btn-analyze" id="analyze-btn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        Analyser mon profil gratuitement
-      </button>
-    </form>
-  </div><!-- /card form -->
-
-  <!-- ── SECTION RÉSULTATS ── -->
-  <div id="score-section">
-
-    <!-- Score principal -->
-    <div class="card animate-in" id="score-card">
-      <div class="score-header-row">
-        <h2>🎯 Votre score LinkedIn</h2>
-        <button class="btn-retake" id="retake-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
-          </svg>
-          Recommencer
-        </button>
-      </div>
-      <p class="subtitle" id="score-subtitle">Analyse basée sur les critères utilisés par les algorithmes LinkedIn et les recruteurs.</p>
-
-      <!-- Jauge demi-cercle SVG -->
-      <div class="gauge-wrapper">
-        <div class="gauge-svg-container">
-          <svg width="220" height="120" viewBox="0 0 220 120">
-            <!-- Arc de fond -->
-            <path
-              d="M 20 110 A 90 90 0 0 1 200 110"
-              fill="none"
-              stroke="#E2E8F0"
-              stroke-width="18"
-              stroke-linecap="round"
+          <h1 class="hero-headline">
+            Votre profil LinkedIn mérite <em>mieux</em> qu'une intuition
+          </h1>
+          <p class="hero-sub">
+            Obtenez une note sur 100 en quelques secondes. Découvrez exactement ce qui bloque votre visibilité auprès des recruteurs — et comment y remédier.
+          </p>
+          <div class="hero-form">
+            <input
+              type="url"
+              class="hero-input"
+              placeholder="https://linkedin.com/in/votre-profil"
+              aria-label="URL de votre profil LinkedIn"
             />
-            <!-- Arc de score (animé via JS) -->
-            <path
-              id="gauge-arc"
-              d="M 20 110 A 90 90 0 0 1 200 110"
-              fill="none"
-              stroke="#0A66C2"
-              stroke-width="18"
-              stroke-linecap="round"
-              stroke-dasharray="283"
-              stroke-dashoffset="283"
-              style="transition: stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1), stroke .4s ease;"
-            />
-          </svg>
-          <div class="gauge-score-label">
-            <span class="gauge-score-number" id="gauge-number">0</span><span class="gauge-score-max">/100</span>
+            <button class="btn-primary">Analyser gratuitement</button>
+          </div>
+          <p class="hero-trust">
+            🔒 <strong>100% confidentiel</strong> — Nous ne stockons pas vos données personnelles
+          </p>
+        </div>
+
+        <div class="hero-visual">
+          <div class="score-card">
+            <p class="score-label">Score LinkedIn</p>
+            <div class="score-number">74<sup>/100</sup></div>
+            <div class="score-bar-wrap">
+              <div class="score-bar-fill"></div>
+            </div>
+            <div class="score-items">
+              <div class="score-item">
+                <span class="score-item-dot dot-green"></span>
+                Photo de profil — Excellent
+              </div>
+              <div class="score-item">
+                <span class="score-item-dot dot-orange"></span>
+                Résumé — À améliorer
+              </div>
+              <div class="score-item">
+                <span class="score-item-dot dot-red"></span>
+                Mots-clés — Insuffisant
+              </div>
+              <div class="score-item">
+                <span class="score-item-dot dot-green"></span>
+                Expériences — Complet
+              </div>
+            </div>
           </div>
         </div>
-        <div class="gauge-label" id="gauge-band-label">—</div>
-        <div class="gauge-sublabel" id="gauge-band-sublabel">—</div>
-      </div>
-    </div><!-- /score-card -->
 
-    <!-- Détail par critère -->
-    <div class="card animate-in animate-in-delay-1" id="breakdown-card">
-      <h2>📊 Détail par critère</h2>
-      <p class="subtitle">Chaque critère est pondéré selon son impact réel sur la visibilité LinkedIn.</p>
-      <div class="section-divider">Résultats</div>
-      <div class="breakdown-list" id="breakdown-list">
-        <!-- Rempli par JS -->
       </div>
     </div>
+  </section>
 
-    <!-- Axes d'amélioration -->
-    <div class="card animate-in animate-in-delay-2" id="improvements-card">
-      <h2>🚀 Axes d'amélioration</h2>
-      <p class="subtitle">Priorités classées par impact sur votre visibilité recruteurs.</p>
-      <div class="section-divider">Plan d'action gratuit</div>      <div class="improvements-list" id="improvements-list">
-        <!-- Rempli par JS -->
+  <!-- ─── SOCIAL PROOF BAND ────────────────────────────────────────── -->
+  <div id="social-proof-band">
+    <div class="container">
+      <div class="band-inner">
+        <div class="band-stat">
+          <strong>12 400+</strong>
+          <span>profils analysés</span>
+        </div>
+        <div class="band-divider"></div>
+        <div class="band-stat">
+          <strong>4,8 / 5</strong>
+          <span>note moyenne utilisateurs</span>
+        </div>
+        <div class="band-divider"></div>
+        <div class="band-stat">
+          <strong>+68%</strong>
+          <span>de vues recruteurs en moyenne</span>
+        </div>
+        <div class="band-divider"></div>
+        <div class="band-stat">
+          <strong>30 sec</strong>
+          <span>pour obtenir votre score</span>
+        </div>
       </div>
     </div>
+  </div>
 
-    <!-- CTA Premium -->
-    <div class="premium-cta animate-in animate-in-delay-3" id="premium-cta-block">
-      <h2>🤖 Recommandations IA personnalisées</h2>
-      <p>Votre score gratuit est un début. Débloquez des recommandations rédigées par l'IA, phrase par phrase, pour chaque section de votre profil.</p>
-      <div class="premium-features">
-        <div class="premium-feature-pill">✦ Réécriture de votre titre</div>
-        <div class="premium-feature-pill">✦ Résumé optimisé SEO</div>
-        <div class="premium-feature-pill">✦ Mots-clés recruteurs</div>
-        <div class="premium-feature-pill">✦ Plan d'action priorisé</div>
+  <!-- ─── FEATURES ─────────────────────────────────────────────────── -->
+  <section id="features">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-eyebrow">Fonctionnalités</p>
+        <h2 class="section-title">Tout ce dont vous avez besoin pour<br/>briller sur LinkedIn</h2>
+        <p class="section-sub">Une analyse complète, des recommandations actionnables. Gratuit pour le score, propulsé par l'IA pour les conseils personnalisés.</p>
       </div>
-      <button class="btn-premium" id="cta-premium-btn">Débloquer les recommandations IA →</button>
-      <p class="premium-price">Paiement unique · Accès à vie · Satisfaction garantie</p>
+      <div class="features-grid">
+
+        <div class="feature-card">
+          <span class="feature-icon">🎯</span>
+          <h3 class="feature-title">Score objectif sur 100</h3>
+          <p class="feature-desc">Notre algorithme évalue 12 critères clés de votre profil : photo, titre, résumé, expériences, compétences, recommandations et bien plus encore.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🔍</span>
+          <h3 class="feature-title">Diagnostic par section</h3>
+          <p class="feature-desc">Identifiez précisément les points forts et les axes d'amélioration, section par section. Plus besoin de deviner ce qui freine votre visibilité.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🤖</span>
+          <h3 class="feature-title">Recommandations IA (Premium)</h3>
+          <p class="feature-desc">Recevez des suggestions rédigées par l'IA, personnalisées pour votre secteur et vos objectifs. Des actionsconcrètes, pas des généralités.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">📈</span>
+          <h3 class="feature-title">Optimisation mots-clés</h3>
+          <p class="feature-desc">Analysez l'adéquation de votre profil avec les termes recherchés par les recruteurs de votre secteur pour remonter dans les résultats LinkedIn.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <h3 class="feature-title">Résultats en 30 secondes</h3>
+          <p class="feature-desc">Pas d'inscription, pas d'attente. Collez votre URL LinkedIn et obtenez votre analyse complète instantanément, depuis n'importe quel appareil.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🔒</span>
+          <h3 class="feature-title">Respect total de votre vie privée</h3>
+          <p class="feature-desc">Aucun stockage de vos données personnelles. Votre analyse est traitée à la volée, conforme RGPD. Vos informations n'appartiennent qu'à vous.</p>
+        </div>
+
+      </div>
     </div>
+  </section>
 
-  </div><!-- /score-section -->
+  <!-- ─── HOW IT WORKS ──────────────────────────────────────────────── -->
+  <section id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-eyebrow">Comment ça marche</p>
+        <h2 class="section-title">3 étapes pour transformer votre profil</h2>
+        <p class="section-sub">Simple, rapide, sans friction. De l'URL à l'action en moins d'une minute.</p>
+      </div>
+      <div class="steps-grid">
 
-</main>
-
-<!-- ── FOOTER ── -->
-<footer>
-  <p>© 2026 OptinkedIn · <a href="#">Mentions légales</a> · <a href="#">Politique de confidentialité</a> · Aucune donnée de profil n'est stockée sur nos serveurs.</p>
-</footer>
-
-<script>
-  /* ════════════════════════════════════════════════════════
-     MOTEUR DE SCORING OPTINKEDIN
-     Critères pondérés sur 100 points au total.
-  ════════════════════════════════════════════════════════ */
-
-  // ── Définition des critères et leur poids maximum ──
-  const CRITERIA = [
-    { key: 'photo',        label: 'Photo de profil',         maxScore: 15, icon: '📸' },
-    { key: 'headline',     label: 'Titre (headline)',         maxScore: 20, icon: '✍️' },
-    { key: 'about',        label: 'Section "À propos"',       maxScore: 15, icon: '📝' },
-    { key: 'experiences',  label: 'Expériences',              maxScore: 15, icon: '💼' },
-    { key: 'expDesc',      label: 'Descriptions d\'expériences', maxScore: 5, icon: '📄' },
-    { key: 'skills',       label: 'Compétences',              maxScore: 10, icon: '🛠️' },
-    { key: 'recommendations', label: 'Recommandations',       maxScore: 10, icon: '⭐' },
-    { key: 'education',    label: 'Formations',                maxScore: 5,  icon: '🎓' },
-    { key: 'banner',       label: 'Bannière personnalisée',   maxScore: 5,  icon: '🖼️' },
-    { key: 'customUrl',    label: 'URL personnalisée',         maxScore: 3,  icon: '🔗' },
-    { key: 'openToWork',   label: 'Cadre Open to Work',       maxScore: 2,  icon: '🟢' },
-  ];
-
-  // ── Couleur de la barre selon le ratio obtenu/max ──
-  function barColor(ratio) {
-    if (ratio >= 0.8) return '#057642';
-    if (ratio >= 0.5) return '#0A66C2';
-    if (ratio >= 0.25) return '#E76F00';
-    return '#CC1016';
-  }
-
-  // ── Couleur et libellé de la jauge selon le score global ──
-  function scoreBand(score) {
-    if (score >= 80) return {
-      label: 'Excellent 🏆',
-      sublabel: 'Votre profil est dans le top 10% des profils LinkedIn. Les recruteurs vous trouveront facilement.',
-      color: '#057642',
-      cssClass: 'band-excellent',
-    };
-    if (score >= 60) return {
-      label: 'Bon profil 👍',
-      sublabel: 'Votre profil est solide mais quelques optimisations peuvent encore augmenter vos vues de 40%+.',
-      color: '#0A66C2',
-      cssClass: 'band-good',
-    };
-    if (score >= 40) return {
-      label: 'Profil moyen ⚠️',
-      sublabel: 'Vous passez sous le radar de nombreux recruteurs. Des améliorations simples changeront tout.',
-      color: '#E76F00',
-      cssClass: 'band-average',
-    };
-    return {
-      label: 'Profil faible 🔴',
-      sublabel: 'Votre profil est peu visible. Appliquez nos recommandations pour multiplier vos chances par 5.',
-      color: '#CC1016',
-      cssClass: 'band-weak',
-    };
-  }
-
-  // ── Calcul du score headline ──
-  function scoreHeadline(text) {
-    const trimmed = text.trim();
-    if (trimmed.length === 0) return 0;
-    if (trimmed.length < 30) return 8;   // Trop court, manque de mots-clés
-    if (trimmed.length < 80) return 14;  // Correct
-    return 20;                            // Riche en mots-clés
-  }
-
-  // ── Calcul du score "À propos" ──
-  function scoreAbout(text) {
-    const trimmed = text.trim();
-    const wordCount = trimmed === '' ? 0 : trimmed.split(/\s+/).length;
-    if (wordCount === 0)   return 0;
-    if (wordCount < 50)    return 5;   // Trop bref
-    if (wordCount < 120)   return 10;  // Correct
-    if (wordCount < 200)   return 13;  // Bien
-    return 15;                          // Complet et riche
-  }
-
-  // ── Calcul du score expériences ──
-  function scoreExperiences(count) {
-    const n = parseInt(count, 10) || 0;
-    if (n === 0) return 0;
-    if (n === 1) return 6;
-    if (n === 2) return 10;
-    if (n <= 4)  return 13;
-    return 15;
-  }
-
-  // ── Calcul du score compétences ──
-  function scoreSkills(count) {
-    const n = parseInt(count, 10) || 0;
-    if (n === 0)  return 0;
-    if (n < 5)    return 3;
-    if (n < 10)   return 7;
-    if (n < 20)   return 9;
-    return 10;
-  }
-
-  // ── Calcul du score recommandations ──
-  function scoreRecommendations(count) {
-    const n = parseInt(count, 10) || 0;
-    if (n === 0) return 0;
-    if (n === 1) return 4;
-    if (n === 2) return 6;
-    if (n <= 4)  return 8;
-    return 10;
-  }
-
-  // ── Collecte des valeurs du formulaire ──
-  function collectFormValues() {
-    const toggleValue = (field) => {
-      const active = document.querySelector(`.toggle-group[data-field="${field}"] .toggle-btn.active`);
-      return active ? parseInt(active.dataset.value, 10) : 0;
-    };
-
-    return {
-      photo:           toggleValue('photo'),
-      banner:          toggleValue('banner'),
-      expDesc:         toggleValue('expDesc'),
-      education:       toggleValue('education'),
-      customUrl:       toggleValue('customUrl'),
-      openToWork:      toggleValue('openToWork'),
-      headlineRaw:     document.getElementById('headline').value,
-      aboutRaw:        document.getElementById('about').value,
-      experiencesRaw:  document.getElementById('experiences').value,
-      skillsRaw:       document.getElementById('skills').value,
-      recommendationsRaw: document.getElementById('recommendations').value,```
-    };
-  }
-
-  // ── Calcul de tous les scores par critère ──
-  function computeScores(values) {
-    const headline     = scoreHeadline(values.headlineRaw);
-    const about        = scoreAbout(values.aboutRaw);
-    const experiences  = scoreExperiences(values.experiencesRaw);
-    const skills       = scoreSkills(values.skillsRaw);
-    const recommendations = scoreRecommendations(values.recommendationsRaw);
-
-    return {
-      photo:           values.photo,
-      headline,
-      about,
-      experiences,
-      expDesc:         values.expDesc,
-      skills,
-      recommendations,
-      education:       values.education,
-      banner:          values.banner,
-      customUrl:       values.customUrl,
-      openToWork:      values.openToWork,
-    };
-  }
-
-  // ── Génération des axes d'amélioration ──
-  function buildImprovements(scores, values) {
-    const items = [];
-
-    if (scores.photo < 15) {
-      items.push({
-        priority: scores.photo === 0 ? 'high' : 'medium',
-        icon: '📸',
-        title: scores.photo === 0 ? 'Ajoutez une photo de profil professionnelle' : 'Remplacez votre photo par un portrait professionnel',
-        description: 'Les profils avec photo reçoivent 21× plus de vues et 9× plus de demandes de connexion. Fond neutre, tenue professionnelle, sourire naturel.',
-      });
-    }
-
-    if (scores.headline < 20) {
-      const headlineLen = values.headlineRaw.trim().length;
-      items.push({
-        priority: headlineLen === 0 ? 'high' : (headlineLen < 30 ? 'high' : 'medium'),
-        icon: '✍️',
-        title: headlineLen === 0 ? 'Rédigez un titre accrocheur' : 'Enrichissez votre titre avec des mots-clés recruteurs',
-        description: 'Votre titre doit inclure votre rôle exact, vos technologies/secteur et une proposition de valeur. Ex : "Développeur React · 5 ans d\'XP · Open to Remote". Visez 120–200 caractères.',
-      });
-    }
-
-    if (scores.about < 15) {
-      const wordCount = values.aboutRaw.trim() === '' ? 0 : values.aboutRaw.trim().split(/\s+/).length;
-      items.push({
-        priority: wordCount === 0 ? 'high' : (wordCount < 50 ? 'high' : 'medium'),
-        icon: '📝',
-        title: wordCount === 0 ? 'Rédigez votre section "À propos"' : 'Développez votre résumé (minimum 200 mots)',
-        description: 'La section "À propos" est votre pitch recruteur. Incluez : votre parcours, vos spécialités, vos réalisations clés chiffrées et un appel à l\'action (coordonnées, lien portfolio).',
-      });
-    }
-
-    if (scores.experiences < 15) {
-      const expCount = parseInt(values.experiencesRaw, 10) || 0;
-      items.push({
-        priority: expCount === 0 ? 'high' : 'medium',
-        icon: '💼',
-        title: expCount === 0 ? 'Ajoutez vos expériences professionnelles' : 'Complétez votre historique d\'expériences',
-        description: 'Renseignez toutes vos expériences (stages inclus), avec dates précises et intitulé de poste exact. LinkedIn favorise les profils avec 3+ expériences dans son algorithme.',
-      });
-    }
-
-    if (scores.expDesc < 5) {
-      items.push({
-        priority: scores.expDesc === 0 ? 'high' : 'medium',
-        icon: '📄',
-        title: 'Ajoutez des descriptions détaillées à vos expériences',
-        description: 'Pour chaque poste, décrivez vos missions (3–5 puces), vos réalisations chiffrées ("Augmentation des ventes de 30%") et les technologies/méthodes utilisées. C\'est ce que scrutent les recruteurs.',
-      });
-    }
-
-    if (scores.skills < 10) {
-      const skillCount = parseInt(values.skillsRaw, 10) || 0;
-      items.push({
-        priority: skillCount < 5 ? 'high' : 'medium',
-        icon: '🛠️',
-        title: skillCount < 5 ? 'Ajoutez au moins 10 compétences' : 'Atteignez 15–20 compétences clés',
-        description: 'Les compétences sont des mots-clés indexés par LinkedIn. Ajoutez vos hard skills techniques ET vos soft skills. Les premières 3 compétences épinglées sont les plus visibles.',
-      });
-    }
-
-    if (scores.recommendations < 10) {
-      const recCount = parseInt(values.recommendationsRaw, 10) || 0;
-      items.push({
-        priority: recCount === 0 ? 'high' : 'low',
-        icon: '⭐',
-        title: recCount === 0 ? 'Demandez vos premières recommandations' : 'Obtenez 3 recommandations supplémentaires',
-        description: 'Contactez d\'anciens managers, collègues ou clients. Facilitez-leur la tâche en suggérant les points à mentionner. 3 recommandations récentes = signal de crédibilité fort pour les recruteurs.',
-      });
-    }
-
-    if (scores.education < 5) {
-      items.push({
-        priority: 'low',
-        icon: '🎓',
-        title: 'Renseignez vos formations',
-        description: 'Ajoutez diplômes, certifications et formations en ligne (Coursera, OpenClassrooms…). Précisez l\'établissement, la période et si possible une description avec compétences acquises.',
-      });
-    }
-
-    if (scores.banner === 0) {
-      items.push({
-        priority: 'low',
-        icon: '🖼️',
-        title: 'Créez une bannière de profil personnalisée',
-        description: 'Utilisez Canva (gratuit) pour créer une bannière 1584×396px. Incluez votre slogan professionnel, vos technologies ou votre secteur. C\'est votre carte de visite visuelle.',
-      });
-    }
-
-    if (scores.customUrl === 0) {
-      items.push({
-        priority: 'low',
-        icon: '🔗',
-        title: 'Personnalisez l\'URL de votre profil',
-        description: 'Allez dans Paramètres > URL publique du profil. Choisissez linkedin.com/in/prenom-nom. Une URL propre facilite le partage et améliore votre référencement Google.',
-      });
-    }
-
-    // Tri : high > medium > low
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    items.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-
-    return items;
-  }
-
-  // ── Animation du compteur de score ──
-  function animateCounter(element, targetValue, duration) {
-    const startTime = performance.now();
-    const startValue = 0;
-
-    function step(currentTime) {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      // Easing ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.round(startValue + (targetValue - startValue) * eased);
-      element.textContent = current;
-      if (progress < 1) requestAnimationFrame(step);
-    }
-
-    requestAnimationFrame(step);
-  }
-
-  // ── Animation de la jauge SVG demi-cercle ──
-  // L'arc total (M 20 110 A 90 90 0 0 1 200 110) = demi-cercle, longueur ≈ π×90 ≈ 283px
-  function animateGauge(score) {
-    const arc = document.getElementById('gauge-arc');
-    const totalLength = 283;
-    const targetOffset = total```
-const targetOffset = totalLength - (score / 100) * totalLength;
-    const band = scoreBand(score);
-    arc.style.stroke = band.color;
-    // Déclenche l'animation CSS via stroke-dashoffset
-    requestAnimationFrame(() => {
-      arc.style.strokeDashoffset = targetOffset;
-    });
-  }
-
-  // ── Rendu du détail par critère ──
-  function renderBreakdown(scores) {
-    const list = document.getElementById('breakdown-list');
-    list.innerHTML = '';
-
-    CRITERIA.forEach(criterion => {
-      const obtained = scores[criterion.key] ?? 0;
-      const ratio = criterion.maxScore > 0 ? obtained / criterion.maxScore : 0;
-      const color = barColor(ratio);
-
-      const item = document.createElement('div');
-      item.className = 'breakdown-item';
-      item.innerHTML = `
-        <div class="criterion-name">${criterion.icon} ${criterion.label}</div>
-        <div class="bar-wrap">
-          <div class="bar-fill" style="width:0%;background:${color};" data-target="${Math.round(ratio * 100)}"></div>
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h3 class="step-title">Collez votre URL LinkedIn</h3>
+          <p class="step-desc">Pas d'inscription requise. Saisissez simplement l'adresse publique de votre profil LinkedIn dans le champ prévu à cet effet.</p>
         </div>
-        <div class="score-frac">${obtained}<span style="color:var(--gray-400);font-weight:400">/${criterion.maxScore}</span></div>
-      `;
-      list.appendChild(item);
-    });
 
-    // Anime les barres après insertion dans le DOM
-    requestAnimationFrame(() => {
-      list.querySelectorAll('.bar-fill').forEach(bar => {
-        const target = bar.dataset.target;
-        requestAnimationFrame(() => {
-          bar.style.transition = 'width 1.2s cubic-bezier(.4,0,.2,1)';
-          bar.style.width = target + '%';
-        });
-      });
-    });
-  }
-
-  // ── Rendu des axes d'amélioration ──
-  function renderImprovements(improvements) {
-    const list = document.getElementById('improvements-list');
-    list.innerHTML = '';
-
-    if (improvements.length === 0) {
-      list.innerHTML = `
-        <div style="text-align:center;padding:24px;color:var(--green);font-weight:700;font-size:16px;">
-          🏆 Profil optimal ! Continuez à collecter des recommandations et à publier du contenu.
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h3 class="step-title">Recevez votre score gratuit</h3>
+          <p class="step-desc">Notre moteur analyse votre profil sur 12 critères en quelques secondes et génère une note sur 100 avec un diagnostic section par section.</p>
         </div>
-      `;
-      return;
-    }
 
-    improvements.forEach(item => {
-      const el = document.createElement('div');
-      el.className = `improvement-item priority-${item.priority}`;
-
-      const priorityLabels = { high: 'Priorité haute', medium: 'Priorité moyenne', low: 'Quick win' };
-
-      el.innerHTML = `
-        <div class="improvement-icon">${item.icon}</div>
-        <div class="improvement-content">
-          <strong>${item.title}</strong>
-          <p>${item.description}</p>
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h3 class="step-title">Passez à l'action avec l'IA</h3>
+          <p class="step-desc">Débloquez les recommandations personnalisées générées par l'IA en un seul paiement. Des conseils précis, actionnables, taillés pour votre profil.</p>
         </div>
-        <div class="priority-tag">${priorityLabels[item.priority]}</div>
-      `;
-      list.appendChild(el);
-    });
-  }
 
-  // ── Affichage des résultats complets ──
-  function displayResults(totalScore, scores, improvements) {
-    const band = scoreBand(totalScore);
+      </div>
+    </div>
+  </section>
 
-    // Affiche la section résultats
-    const scoreSection = document.getElementById('score-section');
-    scoreSection.style.display = 'block';
+  <!-- ─── PRICING ───────────────────────────────────────────────────── -->
+  <section id="pricing">
+    <div class="container">
+      <div class="section-header" style="text-align:center;">
+        <p class="section-eyebrow">Tarifs</p>
+        <h2 class="section-title">Commencez gratuitement,<br/>passez au niveau supérieur quand vous êtes prêt</h2>
+        <p class="section-sub" style="margin: 0 auto;">Un seul paiement, pas d'abonnement. Payez une fois, profitez à vie de vos recommandations IA.</p>
+      </div>
+      <div class="pricing-grid">
 
-    // Met à jour la jauge et le label de bande
-    document.getElementById('gauge-band-label').textContent = band.label;
-    document.getElementById('gauge-band-label').className = `gauge-label ${band.cssClass}`;
-    document.getElementById('gauge-band-sublabel').textContent = band.sublabel;
+        <!-- Plan Gratuit -->
+        <div class="pricing-card">
+          <p class="pricing-plan">Gratuit</p>
+          <div class="pricing-price"><sup>€</sup>0</div>
+          <p class="pricing-price-note">Pour toujours, sans carte bancaire</p>
+          <div class="pricing-divider"></div>
+          <ul class="pricing-features-list">
+            <li><span class="check">✓</span> Score global sur 100</li>
+            <li><span class="check">✓</span> Diagnostic de chaque section</li>
+            <li><span class="check">✓</span> Identification des points faibles</li>
+            <li><span class="check">✓</span> Résultats en 30 secondes</li>
+            <li><span class="cross">✗</span> Recommandations rédigées par l'IA</li>
+            <li><span class="cross">✗</span> Suggestions de mots-clés sectoriels</li>
+            <li><span class="cross">✗</span> Exemples de phrases optimisées</li>
+          </ul>
+          <a href="#hero" class="btn-secondary">Analyser mon profil</a>
+        </div>
 
-    // Met à jour le sous-titre de la carte score
-    const highPriorityCount = improvements.filter(i => i.priority === 'high').length;
-    document.getElementById('score-subtitle').textContent =
-      highPriorityCount > 0
-        ? `${highPriorityCount} point${highPriorityCount > 1 ? 's' : ''} critique${highPriorityCount > 1 ? 's' : ''} identifié${highPriorityCount > 1 ? 's' : ''} — appliquez-les pour progresser rapidement.`
-        : 'Analyse basée sur les critères utilisés par les algorithmes LinkedIn et les recruteurs.';
+        <!-- Plan Premium -->
+        <div class="pricing-card featured">
+          <div class="pricing-badge">⭐ Recommandé</div>
+          <p class="pricing-plan">Premium</p>
+          <div class="pricing-price"><sup>€</sup>19</div>
+          <p class="pricing-price-note">Paiement unique — accès à vie</p>
+          <div class="pricing-divider"></div>
+          <ul class="pricing-features-list">
+            <li><span class="check">✓</span> Score global sur 100</li>
+            <li><span class="check">✓</span> Diagnostic de chaque section</li>
+            <li><span class="check">✓</span> Identification des points faibles</li>
+            <li><span class="check">✓</span> Résultats en 30 secondes</li>
+            <li><span class="check">✓</span> <strong>Recommandations rédigées par l'IA</strong></li>
+            <li><span class="check">✓</span> <strong>Suggestions de mots-clés sectoriels</strong></li>
+            <li><span class="check">✓</span> <strong>Exemples de phrases optimisées</strong></li>
+          </ul>
+          <a href="#hero" class="btn-featured">Obtenir mes recommandations IA →</a>
+        </div>
 
-    // Lance les animations
-    animateGauge(totalScore);
-    animateCounter(document.getElementById('gauge-number'), totalScore, 1400);
-    renderBreakdown(scores);
-    renderImprovements(improvements);
+      </div>
+    </div>
+  </section>
 
-    // Scroll doux vers les résultats
-    setTimeout(() => {
-      scoreSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  }
+  <!-- ─── TESTIMONIALS ──────────────────────────────────────────────── -->
+  <section id="testimonials">
+    <div class="container">
+      <div class="section-header" style="text-align:center;">
+        <p class="section-eyebrow">Témoignages</p>
+        <h2 class="section-title">Ils ont optimisé leur profil.<br/>Les recruteurs les ont remarqués.</h2>
+        <p class="section-sub" style="margin: 0 auto;">Des professionnels de tous horizons ont déjà transformé leur présence LinkedIn grâce à OptinkedIn.</p>
+      </div>
+      <div class="testimonials-grid">
 
-  // ── Soumission du formulaire ──
-  document.getElementById('profile-form').addEventListener('submit', function(event) {
-    event.preventDefault();
+        <div class="testimonial-card">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-quote">
+            "J'avais un score de 58/100 au départ. Après avoir suivi les recommandations IA, je suis passé à 89/100 et j'aireçu 3 fois plus de messages de recruteurs en 2 semaines."
+          </p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">👨‍💻</div>
+            <div>
+              <p class="testimonial-name">Thomas L.</p>
+              <p class="testimonial-role">Développeur Full-Stack, Paris</p>
+            </div>
+          </div>
+        </div>
 
-    const values   = collectFormValues();
-    const scores   = computeScores(values);
-    const total    = Object.values(scores).reduce((sum, v) => sum + v, 0);
-    const clamped  = Math.min(100, Math.max(0, Math.round(total)));
-    const improvements = buildImprovements(scores, values);
+        <div class="testimonial-card">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-quote">
+            "Le diagnostic gratuit m'a ouvert les yeux sur des lacunes que je n'aurais jamais vues seule. Les recommandations IA sont ultra-précises et adaptées à mon secteur. Vaut largement les 19€."
+          </p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">👩‍💼</div>
+            <div>
+              <p class="testimonial-name">Sarah M.</p>
+              <p class="testimonial-role">Responsable Marketing, Lyon</p>
+            </div>
+          </div>
+        </div>
 
-    // Cache le formulaire, affiche les résultats
-    document.getElementById('form-card').style.display = 'none';
-    displayResults(clamped, scores, improvements);
-  });
+        <div class="testimonial-card">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-quote">
+            "En reconversion professionnelle, j'avais peur que mon profil ne soit pas convaincant. OptinkedIn m'a donné un plan d'action clair. J'ai décroché un entretien 10 jours après les modifications."
+          </p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">👨‍🎨</div>
+            <div>
+              <p class="testimonial-name">Karim B.</p>
+              <p class="testimonial-role">UX Designer en reconversion, Bordeaux</p>
+            </div>
+          </div>
+        </div>
 
-  // ── Bouton "Recommencer" ──
-  document.getElementById('retake-btn').addEventListener('click', function() {
-    document.getElementById('score-section').style.display = 'none';
-    document.getElementById('form-card').style.display = 'block';
-    // Remet la jauge à zéro pour la prochaine animation
-    const arc = document.getElementById('gauge-arc');
-    arc.style.transition = 'none';
-    arc.style.strokeDashoffset = '283';
-    document.getElementById('gauge-number').textContent = '0';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
+      </div>
+    </div>
+  </section>
 
-  // ── Gestion des toggles (sélection exclusive au sein d'un groupe) ──
-  document.querySelectorAll('.toggle-group').forEach(group => {
-    group.querySelectorAll('.toggle-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-      });
-    });
-  });
+  <!-- ─── CTA FINAL ─────────────────────────────────────────────────── -->
+  <section id="cta-final">
+    <div class="container">
+      <h2 class="cta-final-title">Prêt à savoir ce que les recruteurs voient vraiment ?</h2>
+      <p class="cta-final-sub">Analysez votre profil LinkedIn gratuitement en 30 secondes. Aucune inscription, aucune carte bancaire requise.</p>
+      <div class="cta-final-form">
+        <input
+          type="url"
+          class="cta-final-input"
+          placeholder="https://linkedin.com/in/votre-profil"
+          aria-label="URL de votre profil LinkedIn"
+        />
+        <button class="btn-primary">Analyser gratuitement →</button>
+      </div>
+      <p class="cta-trust-note">🔒 Conforme RGPD — Vos données ne sont jamais stockées</p>
+    </div>
+  </section>
 
-  // ── Compteurs de caractères ──
-  const headlineInput = document.getElementById('headline');
-  const headlineHint  = document.getElementById('headline-hint');
-  headlineInput.addEventListener('input', function() {
-    headlineHint.textContent = `${this.value.length} / 220 caractères`;
-  });
+  <!-- ─── FOOTER ────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
 
-  const aboutInput = document.getElementById('about');
-  const aboutHint  = document.getElementById('about-hint');
-  aboutInput.addEventListener('input', function() {
-    const wordCount = this.value.trim() === '' ? 0 : this.value.trim().split(/\s+/).length;
-    aboutHint.textContent = `${this.value.length} / 2600 caractères · ${wordCount} mots`;
-  });
+        <div class="footer-brand">
+          <a href="#" class="footer-logo">Optin<span>kedIn</span></a>
+          <p class="footer-tagline">L'outil d'audit LinkedIn qui transforme votre profil en aimant à recruteurs. Score gratuit, recommandations IA en un seul paiement.</p>
+        </div>
 
-  // ── CTA Premium (placeholder vers future page paiement) ──
-  document.getElementById('cta-premium-btn').addEventListener('click', function() {
-    // HYPOTHÈSE : La page de paiement n'existe pas encore — redirige vers l'ancre #premium
-    // À remplacer par l'URL Stripe / page checkout quand disponible
-    this.textContent = '🚀 Bientôt disponible — Rejoignez la liste d\'attente !';
-    this.style.background = '#F0FAF4';
-    this.style.color = '#057642';
-    this.disabled = true;
-  });
-</script>
+        <div class="footer-links-group">
+          <h4>Produit</h4>
+          <ul>
+            <li><a href="#features">Fonctionnalités</a></li>
+            <li><a href="#how-it-works">Comment ça marche</a></li>
+            <li><a href="#pricing">Tarifs</a></li>
+            <li><a href="#testimonials">Témoignages</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-group">
+          <h4>Ressources</h4>
+          <ul>
+            <li><a href="#">Blog LinkedIn</a></li>
+            <li><a href="#">Guide du profil parfait</a></li>
+            <li><a href="#">FAQ</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-group">
+          <h4>Légal</h4>
+          <ul>
+            <li><a href="#">Mentions légales</a></li>
+            <li><a href="#">Politique de confidentialité</a></li>
+            <li><a href="#">CGU</a></li>
+            <li><a href="#">RGPD</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="footer-bottom">
+        <p>© 2026 OptinkedIn. Tous droits réservés.</p>
+        <div class="footer-bottom-links">
+          <a href="#">Confidentialité</a>
+          <a href="#">CGU</a>
+          <a href="#">Contact</a>
+        </div>
+      </div>
+    </div>
+  </footer>
 
 </body>
 </html>
