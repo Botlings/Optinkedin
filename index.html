@@ -3,10 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- CSP restrictive : pas de JS inline, pas de ressources externes non listées -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    style-src 'unsafe-inline' https://fonts.googleapis.com;
+    font-src https://fonts.gstatic.com;
+    img-src 'self';
+    form-action 'self';
+    base-uri 'self';
+    frame-ancestors 'none';
+  " />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
   <title>OptinkedIn — Évaluez et optimisez votre profil LinkedIn</title>
   <meta name="description" content="Obtenez une note sur 100 pour votre profil LinkedIn et des recommandations IA personnalisées pour attirer plus de recruteurs." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <!-- Intégrité de sous-ressource sur la connexion Google Fonts (preconnect) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!--
+    SRI non applicable sur une feuille de style chargée dynamiquement par Google Fonts
+    (le hash change à chaque variante demandée) — le blocage CSP suffit : seul
+    fonts.googleapis.com et fonts.gstatic.com sont autorisés en style/font.
+  -->
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     /* ─── Reset & Base ─────────────────────────────────────────────── */
@@ -144,7 +163,6 @@
       overflow: hidden;
     }
 
-    /* motif géométrique décoratif */
     #hero::before {
       content: '';
       position: absolute;
@@ -171,7 +189,7 @@
       gap: 64px;
       align-items: center;
       width: 100%;
-      padding-top: 64px; /* nav offset */
+      padding-top: 64px;
     }
 
     .hero-badge {
@@ -274,7 +292,6 @@
       color: rgba(255,255,255,0.9);
     }
 
-    /* Carte score flottante */
     .hero-visual {
       display: flex;
       justify-content: center;
@@ -440,7 +457,8 @@
       background: var(--gray-50);
       border: 1px solid var(--gray-200);
       border-radius: var(--radius-card);
-      padding: 32px 28px;     transition: box-shadow 0.25s, transform 0.25s, border-color 0.25s;
+      padding: 32px 28px;
+      transition: box-shadow 0.25s, transform 0.25s, border-color 0.25s;
     }
 
     .feature-card:hover {
@@ -480,7 +498,6 @@
       position: relative;
     }
 
-    /* ligne de connexion entre étapes */
     .steps-grid::before {
       content: '';
       position: absolute;
@@ -688,7 +705,8 @@
 
     .btn-featured:hover {
       opacity: 0.9;
-      transform: translateY(-2px);     box-shadow: 0 6px 24px rgba(10, 102, 194, 0.30);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(10, 102, 194, 0.30);
     }
 
     /* ─── TESTIMONIALS ─────────────────────────────────────────────── */
@@ -1036,8 +1054,7 @@
       }
     }
   </style>
-</head>
-<body>
+</head><body>
 
   <!-- ─── NAV ─────────────────────────────────────────────────────── -->
   <nav>
@@ -1062,22 +1079,28 @@
           <p class="hero-sub">
             Obtenez une note sur 100 en quelques secondes. Découvrez exactement ce qui bloque votre visibilité auprès des recruteurs — et comment y remédier.
           </p>
-          <div class="hero-form">
+          <!-- form-action 'self' dans la CSP garantit que la soumission ne peut cibler qu'une origine identique -->
+          <form class="hero-form" action="#" method="get" novalidate>
             <input
               type="url"
               class="hero-input"
+              name="linkedin_url"
               placeholder="https://linkedin.com/in/votre-profil"
               aria-label="URL de votre profil LinkedIn"
+              required
+              pattern="https://www\.linkedin\.com/in/[A-Za-z0-9\-_%]+"
+              autocomplete="url"
+              spellcheck="false"
             />
-            <button class="btn-primary">Analyser gratuitement</button>
-          </div>
+            <button type="submit" class="btn-primary">Analyser gratuitement</button>
+          </form>
           <p class="hero-trust">
             🔒 <strong>100% confidentiel</strong> — Nous ne stockons pas vos données personnelles
           </p>
         </div>
 
         <div class="hero-visual">
-          <div class="score-card">
+          <div class="score-card" aria-hidden="true">
             <p class="score-label">Score LinkedIn</p>
             <div class="score-number">74<sup>/100</sup></div>
             <div class="score-bar-wrap">
@@ -1160,7 +1183,7 @@
         <div class="feature-card">
           <span class="feature-icon">🤖</span>
           <h3 class="feature-title">Recommandations IA (Premium)</h3>
-          <p class="feature-desc">Recevez des suggestions rédigées par l'IA, personnalisées pour votre secteur et vos objectifs. Des actionsconcrètes, pas des généralités.</p>
+          <p class="feature-desc">Recevez des suggestions rédigées par l'IA, personnalisées pour votre secteur et vos objectifs. Des actions concrètes, pas des généralités.</p>
         </div>
 
         <div class="feature-card">
@@ -1200,7 +1223,6 @@
           <h3 class="step-title">Collez votre URL LinkedIn</h3>
           <p class="step-desc">Pas d'inscription requise. Saisissez simplement l'adresse publique de votre profil LinkedIn dans le champ prévu à cet effet.</p>
         </div>
-
         <div class="step-card">
           <div class="step-number">2</div>
           <h3 class="step-title">Recevez votre score gratuit</h3>
@@ -1281,7 +1303,7 @@
         <div class="testimonial-card">
           <div class="testimonial-stars">★★★★★</div>
           <p class="testimonial-quote">
-            "J'avais un score de 58/100 au départ. Après avoir suivi les recommandations IA, je suis passé à 89/100 et j'aireçu 3 fois plus de messages de recruteurs en 2 semaines."
+            "J'avais un score de 58/100 au départ. Après avoir suivi les recommandations IA, je suis passé à 89/100 et j'ai reçu 3 fois plus de messages de recruteurs en 2 semaines."
           </p>
           <div class="testimonial-author">
             <div class="testimonial-avatar">👨‍💻</div>
@@ -1329,15 +1351,20 @@
     <div class="container">
       <h2 class="cta-final-title">Prêt à savoir ce que les recruteurs voient vraiment ?</h2>
       <p class="cta-final-sub">Analysez votre profil LinkedIn gratuitement en 30 secondes. Aucune inscription, aucune carte bancaire requise.</p>
-      <div class="cta-final-form">
+      <!-- form-action 'self' dans la CSP garantit que la soumission ne peut cibler qu'une origine identique -->
+      <form class="cta-final-form" action="#" method="get" novalidate>
         <input
           type="url"
           class="cta-final-input"
+          name="linkedin_url"
           placeholder="https://linkedin.com/in/votre-profil"
           aria-label="URL de votre profil LinkedIn"
-        />
-        <button class="btn-primary">Analyser gratuitement →</button>
-      </div>
+          required
+          pattern="https://www\.linkedin\.com/in/[A-Za-z0-9\-_%]+"
+          autocomplete="url"
+          spellcheck="false"/>
+        <button type="submit" class="btn-primary">Analyser gratuitement →</button>
+      </form>
       <p class="cta-trust-note">🔒 Conforme RGPD — Vos données ne sont jamais stockées</p>
     </div>
   </section>
@@ -1365,19 +1392,19 @@
         <div class="footer-links-group">
           <h4>Ressources</h4>
           <ul>
-            <li><a href="#">Blog LinkedIn</a></li>
-            <li><a href="#">Guide du profil parfait</a></li>
-            <li><a href="#">FAQ</a></li>
+            <li><a href="#" rel="noopener noreferrer">Blog LinkedIn</a></li>
+            <li><a href="#" rel="noopener noreferrer">Guide du profil parfait</a></li>
+            <li><a href="#" rel="noopener noreferrer">FAQ</a></li>
           </ul>
         </div>
 
         <div class="footer-links-group">
           <h4>Légal</h4>
           <ul>
-            <li><a href="#">Mentions légales</a></li>
-            <li><a href="#">Politique de confidentialité</a></li>
-            <li><a href="#">CGU</a></li>
-            <li><a href="#">RGPD</a></li>
+            <li><a href="#" rel="noopener noreferrer">Mentions légales</a></li>
+            <li><a href="#" rel="noopener noreferrer">Politique de confidentialité</a></li>
+            <li><a href="#" rel="noopener noreferrer">CGU</a></li>
+            <li><a href="#" rel="noopener noreferrer">RGPD</a></li>
           </ul>
         </div>
 
@@ -1386,9 +1413,9 @@
       <div class="footer-bottom">
         <p>© 2026 OptinkedIn. Tous droits réservés.</p>
         <div class="footer-bottom-links">
-          <a href="#">Confidentialité</a>
-          <a href="#">CGU</a>
-          <a href="#">Contact</a>
+          <a href="#" rel="noopener noreferrer">Confidentialité</a>
+          <a href="#" rel="noopener noreferrer">CGU</a>
+          <a href="#" rel="noopener noreferrer">Contact</a>
         </div>
       </div>
     </div>
