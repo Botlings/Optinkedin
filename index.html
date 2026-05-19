@@ -3,9 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- CSP restrictive : pas de JS inline, pas de ressources externes non listées -->
+  <!--
+    CSP mise à jour : script-src 'unsafe-inline' ajouté pour permettre le JS
+    inline du bandeau RGPD (site statique sans bundler — pas de nonce disponible).
+    Tous les autres directives restent restrictives.
+  -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'none';
+    script-src 'unsafe-inline';
     style-src 'unsafe-inline' https://fonts.googleapis.com;
     font-src https://fonts.gstatic.com;
     img-src 'self';
@@ -18,14 +23,8 @@
   <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
   <title>OptinkedIn — Évaluez et optimisez votre profil LinkedIn</title>
   <meta name="description" content="Obtenez une note sur 100 pour votre profil LinkedIn et des recommandations IA personnalisées pour attirer plus de recruteurs." />
-  <!-- Intégrité de sous-ressource sur la connexion Google Fonts (preconnect) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <!--
-    SRI non applicable sur une feuille de style chargée dynamiquement par Google Fonts
-    (le hash change à chaque variante demandée) — le blocage CSP suffit : seul
-    fonts.googleapis.com et fonts.gstatic.com sont autorisés en style/font.
-  -->
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     /* ─── Reset & Base ─────────────────────────────────────────────── */
@@ -87,6 +86,11 @@
     @keyframes floatScore {
       0%, 100% { transform: translateY(0px) rotate(-3deg); }
       50%       { transform: translateY(-10px) rotate(-3deg); }
+    }
+
+    @keyframes slideUpBanner {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
     }
 
     /* ─── Layout helpers ───────────────────────────────────────────── */
@@ -957,6 +961,117 @@
       color: var(--white);
     }
 
+    /* ─── COOKIE BANNER ─────────────────────────────────────────────── */
+    #cookie-banner {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 9999;
+      background: var(--gray-900);
+      border-top: 1px solid rgba(255,255,255,0.10);
+      padding: 20px 24px;
+      animation: slideUpBanner 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      /* S'assure que le bandeau ne soit pas masqué par d'autres éléments fixed */
+      box-shadow: 0 -4px 32px rgba(0,0,0,0.25);
+    }
+
+    /* Quand le bandeau est masqué via JS */
+    #cookie-banner[hidden] {
+      display: none;
+    }
+
+    .cookie-banner-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .cookie-banner-text {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .cookie-banner-text p {
+      font-size: 0.88rem;
+      color: var(--gray-400);
+      line-height: 1.6;```
+    }
+
+    .cookie-banner-text p strong {
+      color: var(--white);
+      font-weight: 700;
+    }
+
+    .cookie-banner-text a {
+      color: var(--blue-light);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: color 0.2s;
+    }
+
+    .cookie-banner-text a:hover {
+      color: var(--white);
+    }
+
+    .cookie-banner-actions {
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .cookie-btn-accept {
+      background: var(--gradient-hero);
+      color: var(--white);
+      border: none;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap;
+    }
+
+    .cookie-btn-accept:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .cookie-btn-accept:focus-visible {
+      outline: 2px solid var(--blue-light);
+      outline-offset: 3px;
+    }
+
+    .cookie-btn-decline {
+      background: transparent;
+      color: var(--gray-400);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s, transform 0.2s;
+      white-space: nowrap;
+    }
+
+    .cookie-btn-decline:hover {
+      color: var(--white);
+      border-color: rgba(255,255,255,0.35);
+      transform: translateY(-1px);
+    }
+
+    .cookie-btn-decline:focus-visible {
+      outline: 2px solid var(--blue-light);
+      outline-offset: 3px;
+    }
+
     /* ─── RESPONSIVE ────────────────────────────────────────────────── */
     @media (max-width: 768px) {
       .hero-inner {
@@ -1034,6 +1149,22 @@
         align-items: center;
         padding: 0 16px;
       }
+
+      .cookie-banner-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .cookie-banner-actions {
+        width: 100%;
+      }
+
+      .cookie-btn-accept,
+      .cookie-btn-decline {
+        flex: 1;
+        text-align: center;
+      }
     }
 
     @media (max-width: 480px) {
@@ -1079,7 +1210,6 @@
           <p class="hero-sub">
             Obtenez une note sur 100 en quelques secondes. Découvrez exactement ce qui bloque votre visibilité auprès des recruteurs — et comment y remédier.
           </p>
-          <!-- form-action 'self' dans la CSP garantit que la soumission ne peut cibler qu'une origine identique -->
           <form class="hero-form" action="#" method="get" novalidate>
             <input
               type="url"
@@ -1279,11 +1409,11 @@
             <li><span class="check">✓</span> Diagnostic de chaque section</li>
             <li><span class="check">✓</span> Identification des points faibles</li>
             <li><span class="check">✓</span> Résultats en 30 secondes</li>
-            <li><span class="check">✓</span> <strong>Recommandations rédigées par l'IA</strong></li>
+            <li><span class="check">✓</span> <strong>Recommandations rédigées par l'IA</strong></li></li>
             <li><span class="check">✓</span> <strong>Suggestions de mots-clés sectoriels</strong></li>
             <li><span class="check">✓</span> <strong>Exemples de phrases optimisées</strong></li>
           </ul>
-          <a href="#hero" class="btn-featured">Obtenir mes recommandations IA →</a>
+          <a href="https://buy.stripe.com/7sYfZh520gyXem39rh6sw00" target="_blank" rel="noopener noreferrer" class="btn-featured">Obtenir mes recommandations IA →</a>
         </div>
 
       </div>
@@ -1351,7 +1481,6 @@
     <div class="container">
       <h2 class="cta-final-title">Prêt à savoir ce que les recruteurs voient vraiment ?</h2>
       <p class="cta-final-sub">Analysez votre profil LinkedIn gratuitement en 30 secondes. Aucune inscription, aucune carte bancaire requise.</p>
-      <!-- form-action 'self' dans la CSP garantit que la soumission ne peut cibler qu'une origine identique -->
       <form class="cta-final-form" action="#" method="get" novalidate>
         <input
           type="url"
@@ -1420,6 +1549,81 @@
       </div>
     </div>
   </footer>
+
+  <!-- ─── BANDEAU RGPD / COOKIES ────────────────────────────────────── -->
+  <!--
+    Le bandeau est rendu visible par défaut (pas d'attribut hidden).
+    Le script ci-dessous le masque immédiatement si un choix est déjà
+    enregistré en localStorage, évitant tout flash visible au chargement.
+  -->
+  <div
+    id="cookie-banner"
+    role="region"
+    aria-label="Gestion des cookies"
+    aria-live="polite"
+  >
+    <div class="cookie-banner-inner">
+      <div class="cookie-banner-text">
+        <p>
+          <strong>🍪 Ce site utilise des cookies fonctionnels.</strong>
+          Nous utilisons uniquement des cookies strictement nécessaires au bon
+          fonctionnement du service (mémorisation de vos préférences). Aucun
+          cookie publicitaire ou de tracking tiers n'est déposé sans votre consentement.
+          <a href="#" rel="noopener noreferrer">En savoir plus</a>.
+        </p>
+      </div>
+      <div class="cookie-banner-actions">
+        <button class="cookie-btn-decline" id="cookie-btn-decline" type="button">
+          Refuser
+        </button>
+        <button class="cookie-btn-accept" id="cookie-btn-accept" type="button">
+          Accepter
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var STORAGE_KEY = 'optinkedin_cookie_consent';
+      var banner = document.getElementById('cookie-banner');
+      var btnAccept = document.getElementById('cookie-btn-accept');
+      var btnDecline = document.getElementById('cookie-btn-decline');
+
+      // Masque instantanément le bandeau si un choix a déjà été enregistré,
+      // avant tout rendu, pour éviter le flash au rechargement.
+      var existingChoice = localStorage.getItem(STORAGE_KEY);
+      if (existingChoice !== null) {
+        banner.hidden = true;
+      }
+
+      function dismissBanner(choice) {
+        try {
+          localStorage.setItem(STORAGE_KEY, choice);
+        } catch (e) {
+          // localStorage indisponible (navigation privée restrictive) : on
+          // masque quand même le bandeau pour cette session.
+        }
+        banner.hidden = true;
+      }
+
+      btnAccept.addEventListener('click', function () {
+        dismissBanner('accepted');
+      });
+
+      btnDecline.addEventListener('click', function () {
+        dismissBanner('declined');
+      });
+
+      // Fermeture au clavier : Échap referme le bandeau avec "declined"
+      // si celui-ci est visible, pour rester accessible sans souris.
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !banner.hidden) {
+          dismissBanner('declined');
+        }
+      });
+    })();
+  </script>
 
 </body>
 </html>
