@@ -280,9 +280,18 @@
       display: inline-block;
     }
 
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
       transform: translateY(-2px) scale(1.03);
       box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+    }
+
+    /* État désactivé pendant le traitement (anti-double-submit) */
+    .btn-primary:disabled,
+    .btn-primary[aria-busy="true"] {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
 
     .hero-trust {
@@ -970,11 +979,9 @@
       border-top: 1px solid rgba(255,255,255,0.10);
       padding: 20px 24px;
       animation: slideUpBanner 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-      /* S'assure que le bandeau ne soit pas masqué par d'autres éléments fixed */
       box-shadow: 0 -4px 32px rgba(0,0,0,0.25);
     }
 
-    /* Quand le bandeau est masqué via JS */
     #cookie-banner[hidden] {
       display: none;
     }
@@ -997,7 +1004,7 @@
     .cookie-banner-text p {
       font-size: 0.88rem;
       color: var(--gray-400);
-      line-height: 1.6;```
+      line-height: 1.6;
     }
 
     .cookie-banner-text p strong {
@@ -1210,7 +1217,12 @@
           <p class="hero-sub">
             Obtenez une note sur 100 en quelques secondes. Découvrez exactement ce qui bloque votre visibilité auprès des recruteurs — et comment y remédier.
           </p>
-          <form class="hero-form" action="#" method="get" novalidate>
+          <!--
+            Le champ hidden csrf-token est injecté par le script CSRF
+            au chargement de la page. Le bouton reçoit data-loading-text
+            pour afficher un état visuel pendant le traitement.
+          -->
+          <form class="hero-form" id="form-hero" action="#" method="get" novalidate>
             <input
               type="url"
               class="hero-input"
@@ -1222,7 +1234,15 @@
               autocomplete="url"
               spellcheck="false"
             />
-            <button type="submit" class="btn-primary">Analyser gratuitement</button>
+            <button
+              type="submit"
+              class="btn-primary"
+              id="submit-hero"
+              data-default-text="Analyser gratuitement"
+              data-loading-text="Analyse en cours…"
+            >
+              Analyser gratuitement
+            </button>
           </form>
           <p class="hero-trust">
             🔒 <strong>100% confidentiel</strong> — Nous ne stockons pas vos données personnelles
@@ -1409,7 +1429,7 @@
             <li><span class="check">✓</span> Diagnostic de chaque section</li>
             <li><span class="check">✓</span> Identification des points faibles</li>
             <li><span class="check">✓</span> Résultats en 30 secondes</li>
-            <li><span class="check">✓</span> <strong>Recommandations rédigées par l'IA</strong></li></li>
+            <li><span class="check">✓</span> <strong>Recommandations rédigées par l'IA</strong></li>
             <li><span class="check">✓</span> <strong>Suggestions de mots-clés sectoriels</strong></li>
             <li><span class="check">✓</span> <strong>Exemples de phrases optimisées</strong></li>
           </ul>
@@ -1481,7 +1501,11 @@
     <div class="container">
       <h2 class="cta-final-title">Prêt à savoir ce que les recruteurs voient vraiment ?</h2>
       <p class="cta-final-sub">Analysez votre profil LinkedIn gratuitement en 30 secondes. Aucune inscription, aucune carte bancaire requise.</p>
-      <form class="cta-final-form" action="#" method="get" novalidate>
+      <!--
+        Même mécanique CSRF + anti-double-submit que le formulaire hero.
+        Le champ hidden csrf-token est injecté par le script CSRF.
+      -->
+      <form class="cta-final-form" id="form-cta" action="#" method="get" novalidate>
         <input
           type="url"
           class="cta-final-input"
@@ -1491,8 +1515,17 @@
           required
           pattern="https://www\.linkedin\.com/in/[A-Za-z0-9\-_%]+"
           autocomplete="url"
-          spellcheck="false"/>
-        <button type="submit" class="btn-primary">Analyser gratuitement →</button>
+          spellcheck="false"
+        />
+        <button
+          type="submit"
+          class="btn-primary"
+          id="submit-cta"
+          data-default-text="Analyser gratuitement →"
+          data-loading-text="Analyse en cours…"
+        >
+          Analyser gratuitement →
+        </button>
       </form>
       <p class="cta-trust-note">🔒 Conforme RGPD — Vos données ne sont jamais stockées</p>
     </div>
@@ -1551,11 +1584,6 @@
   </footer>
 
   <!-- ─── BANDEAU RGPD / COOKIES ────────────────────────────────────── -->
-  <!--
-    Le bandeau est rendu visible par défaut (pas d'attribut hidden).
-    Le script ci-dessous le masque immédiatement si un choix est déjà
-    enregistré en localStorage, évitant tout flash visible au chargement.
-  -->
   <div
     id="cookie-banner"
     role="region"
@@ -1583,18 +1611,20 @@
     </div>
   </div>
 
+  <!-- ─── SCRIPTS ───────────────────────────────────────────────────── -->
   <script>
+    // ═══════════════════════════════════════════════════════════════════
+    // BANDEAU RGPD
+    // ═══════════════════════════════════════════════════════════════════
     (function () {
       var STORAGE_KEY = 'optinkedin_cookie_consent';
-      var banner = document.getElementById('cookie-banner');
-      var btnAccept = document.getElementById('cookie-btn-accept');
-      var btnDecline = document.getElementById('cookie-btn-decline');
+      var banner      = document.getElementById('cookie-banner');
+      var btnAccept   = document.getElementById('cookie-btn-accept');
+      var btnDecline  = document.getElementById('cookie-btn-decline');
 
-      // Masque instantanément le bandeau si un choix a déjà été enregistré,
-      // avant tout rendu, pour éviter le flash au rechargement.
-      var existingChoice = localStorage.getItem(STORAGE_KEY);
-      if (existingChoice !== null) {
-        banner.hidden = true;
+      // Masque instantanément si un choix a déjà été enregistré.
+      if (localStorage.getItem(STORAGE_KEY) !== null) {
+        banner.hidden = true;```
       }
 
       function dismissBanner(choice) {
@@ -1622,6 +1652,188 @@
           dismissBanner('declined');
         }
       });
+    })();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // TOKEN CSRF — génération et injection dans les formulaires
+    //
+    // Contexte : site statique sans backend actif en Sprint 1.
+    // Le token est généré côté client via crypto.getRandomValues,
+    // stocké en sessionStorage (scope onglet, effacé à la fermeture),
+    // et injecté comme champ hidden dans chaque formulaire d'analyse.
+    // Le backend Express le validera à réception via le même
+    // sessionStorage token transmis en header X-CSRF-Token sur le fetch.
+    //
+    // Avantages sur un site statique :
+    //   - Empêche les soumissions cross-origin silencieuses (formulaires
+    //     HTML natifs d'autres pages ne peuvent pas lire sessionStorage).
+    //   - Prépare la validation backend sans aucune dépendance externe.
+    // ═══════════════════════════════════════════════════════════════════
+    (function () {
+      var CSRF_KEY = 'optinkedin_csrf_token';
+
+      // Génère un token hex de 32 octets (256 bits) via l'API Web Crypto.
+      // Utilise le token existant dans sessionStorage si la session est
+      // déjà ouverte, pour éviter de régénérer à chaque navigation interne.
+      function generateCsrfToken() {
+        var existing = sessionStorage.getItem(CSRF_KEY);
+        if (existing) {
+          return existing;
+        }
+        var bytes  = new Uint8Array(32);
+        crypto.getRandomValues(bytes);
+        var token  = Array.from(bytes)
+          .map(function (b) { return b.toString(16).padStart(2, '0'); })
+          .join('');
+        sessionStorage.setItem(CSRF_KEY, token);
+        return token;
+      }
+
+      // Injecte un champ <input type="hidden"> portant le token CSRF
+      // dans le formulaire passé en paramètre. Idempotent : si un champ
+      // existe déjà (ex. navigation SPA future), met à jour sa valeur.
+      function injectCsrfField(form, token) {
+        var existing = form.querySelector('input[name="csrf_token"]');
+        if (existing) {
+          existing.value = token;
+          return;
+        }
+        var field    = document.createElement('input');
+        field.type   = 'hidden';
+        field.name   = 'csrf_token';
+        field.value  = token;
+        form.appendChild(field);
+      }
+
+      var csrfToken = generateCsrfToken();
+
+      // Injecte dans les deux formulaires d'analyse présents sur la page.
+      var formHero = document.getElementById('form-hero');
+      var formCta  = document.getElementById('form-cta');
+
+      if (formHero) { injectCsrfField(formHero, csrfToken); }
+      if (formCta)  { injectCsrfField(formCta,  csrfToken); }
+
+      // Expose le token sur window pour que les modules JS futurs
+      // (analyzer.js, premium.js) puissent l'ajouter au header
+      // X-CSRF-Token lors des appels fetch vers le backend.
+      window.__csrfToken = csrfToken;
+    })();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ANTI-DOUBLE-SUBMIT — désactivation du bouton pendant le traitement
+    //
+    // Attache un handler submit sur chaque formulaire d'analyse.
+    // Au submit :
+    //   1. Valide la présence et la forme du token CSRF (hex 64 chars).
+    //   2. Désactive le bouton submit + met à jour son texte.
+    //   3. Pose aria-busy="true" pour l'accessibilité.
+    //   4. Simule le traitement asynchrone (fetch vers backend Sprint 2).
+    //      En attendant le backend, un timeout de 3 s réactive le bouton
+    //      pour ne pas bloquer l'utilisateur indéfiniment.
+    //
+    // Le réarmement se fait systématiquement dans le bloc finally pour
+    // garantir que le bouton n'est jamais bloqué en cas d'erreur réseau.
+    // ═══════════════════════════════════════════════════════════════════
+    (function () {
+      var CSRF_KEY        = 'optinkedin_csrf_token';
+      // Regex : 64 caractères hexadécimaux (32 octets encodés).
+      var CSRF_HEX_REGEX  = /^[0-9a-f]{64}$/;
+
+      function getStoredToken() {
+        return sessionStorage.getItem(CSRF_KEY);
+      }
+
+      // Valide que le token injecté dans le formulaire correspond bien
+      // au token de session et respecte le format attendu.
+      function isTokenValid(formToken) {
+        if (!formToken || !CSRF_HEX_REGEX.test(formToken)) {
+          return false;
+        }
+        var storedToken = getStoredToken();
+        return storedToken !== null && formToken === storedToken;
+      }
+
+      // Passe le bouton en état "en cours" : désactivé, texte mis à jour,
+      // aria-busy positionné pour les lecteurs d'écran.
+      function setButtonLoading(btn) {
+        btn.disabled          = true;
+        btn.setAttribute('aria-busy', 'true');
+        var loadingText       = btn.getAttribute('data-loading-text');
+        if (loadingText) {
+          btn.textContent     = loadingText;
+        }
+      }
+
+      // Remet le bouton dans son état initial après traitement.
+      function resetButton(btn) {
+        btn.disabled          = false;
+        btn.removeAttribute('aria-busy');
+        var defaultText       = btn.getAttribute('data-default-text');
+        if (defaultText) {
+          btn.textContent     = defaultText;
+        }
+      }
+
+      function attachSubmitGuard(formId, submitBtnId) {
+        var form = document.getElementById(formId);
+        var btn  = document.getElementById(submitBtnId);
+        if (!form || !btn) { return; }
+
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+
+          // Récupère le token injecté dans le formulaire.
+          var csrfField = form.querySelector('input[name="csrf_token"]');
+          var formToken = csrfField ? csrfField.value : '';
+
+          if (!isTokenValid(formToken)) {
+            // Token absent, malformé ou ne correspondant pas à la session :
+            // on bloque silencieusement sans exposer d'information sensible.
+            // Le formulaire est simplement réinitialisé pour permettre
+            // une nouvelle tentative après rechargement de page.
+            form.reset();
+            return;
+          }
+
+          // Empêche tout double-submit immédiat.
+          setButtonLoading(btn);
+
+          // ── Branchement futur vers le backend ────────────────────────
+          // Quand le backend Railway sera actif (Sprint 2), remplacer le
+          // timeout ci-dessous par un appel fetch :
+          //
+          //   var urlInput = form.querySelector('input[name="linkedin_url"]');
+          //   fetch('https://optinkedin-api.railway.app/api/analyze', {
+          //     method: 'POST',
+          //     headers: {
+          //       'Content-Type': 'application/json',
+          //       'X-CSRF-Token': window.__csrfToken
+          //     },
+          //     body: JSON.stringify({ url: urlInput.value })
+          //   })
+          //   .then(function (res) { return res.json(); })
+          //   .then(function (data) { /* afficher résultats */ })
+          //   .catch(function (err) { /* afficher erreur utilisateur */ })
+          //   .finally(function () { resetButton(btn); });
+          //
+          // ─────────────────────────────────────────────────────────────
+
+          // HYPOTHÈSE : en Sprint 1, aucun backend n'est branché.
+          // On simule un aller-retour réseau de 3 s puis on réactive
+          // le bouton pour ne pas laisser l'utilisateur bloqué.
+          var fallbackTimer = setTimeout(function () {
+            resetButton(btn);
+          }, 3000);
+
+          // Stocke le timer pour pouvoir l'annuler si le fetch futur
+          // répond avant le délai (évite un double-reset).
+          btn._fallbackTimer = fallbackTimer;
+        });
+      }
+
+      attachSubmitGuard('form-hero', 'submit-hero');
+      attachSubmitGuard('form-cta',  'submit-cta');
     })();
   </script>
 
