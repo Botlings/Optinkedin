@@ -7,6 +7,7 @@
     CSP mise à jour : script-src 'unsafe-inline' ajouté pour permettre le JS
     inline du bandeau RGPD (site statique sans bundler — pas de nonce disponible).
     Tous les autres directives restent restrictives.
+    connect-src ajouté pour autoriser les appels fetch vers le backend Railway.
   -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'none';
@@ -14,6 +15,7 @@
     style-src 'unsafe-inline' https://fonts.googleapis.com;
     font-src https://fonts.gstatic.com;
     img-src 'self';
+    connect-src https://optinkedin-api.railway.app;
     form-action 'self';
     base-uri 'self';
     frame-ancestors 'none';
@@ -285,7 +287,6 @@
       box-shadow: 0 8px 28px rgba(0,0,0,0.18);
     }
 
-    /* État désactivé pendant le traitement (anti-double-submit) */
     .btn-primary:disabled,
     .btn-primary[aria-busy="true"] {
       opacity: 0.65;
@@ -1217,11 +1218,6 @@
           <p class="hero-sub">
             Obtenez une note sur 100 en quelques secondes. Découvrez exactement ce qui bloque votre visibilité auprès des recruteurs — et comment y remédier.
           </p>
-          <!--
-            Le champ hidden csrf-token est injecté par le script CSRF
-            au chargement de la page. Le bouton reçoit data-loading-text
-            pour afficher un état visuel pendant le traitement.
-          -->
           <form class="hero-form" id="form-hero" action="#" method="get" novalidate>
             <input
               type="url"
@@ -1399,7 +1395,6 @@
       </div>
       <div class="pricing-grid">
 
-        <!-- Plan Gratuit -->
         <div class="pricing-card">
           <p class="pricing-plan">Gratuit</p>
           <div class="pricing-price"><sup>€</sup>0</div>
@@ -1417,7 +1412,6 @@
           <a href="#hero" class="btn-secondary">Analyser mon profil</a>
         </div>
 
-        <!-- Plan Premium -->
         <div class="pricing-card featured">
           <div class="pricing-badge">⭐ Recommandé</div>
           <p class="pricing-plan">Premium</p>
@@ -1501,10 +1495,6 @@
     <div class="container">
       <h2 class="cta-final-title">Prêt à savoir ce que les recruteurs voient vraiment ?</h2>
       <p class="cta-final-sub">Analysez votre profil LinkedIn gratuitement en 30 secondes. Aucune inscription, aucune carte bancaire requise.</p>
-      <!--
-        Même mécanique CSRF + anti-double-submit que le formulaire hero.
-        Le champ hidden csrf-token est injecté par le script CSRF.
-      -->
       <form class="cta-final-form" id="form-cta" action="#" method="get" novalidate>
         <input
           type="url"
@@ -1622,9 +1612,8 @@
       var btnAccept   = document.getElementById('cookie-btn-accept');
       var btnDecline  = document.getElementById('cookie-btn-decline');
 
-      // Masque instantanément si un choix a déjà été enregistré.
       if (localStorage.getItem(STORAGE_KEY) !== null) {
-        banner.hidden = true;```
+        banner.hidden = true;
       }
 
       function dismissBanner(choice) {
@@ -1637,142 +1626,139 @@
         banner.hidden = true;
       }
 
-      btnAccept.addEventListener('click', function () {
-        dismissBanner('accepted');
-      });
+      btnAccept.addEventListener('click', function () { dismissBanner('accepted'); });
+      btnDecline.addEventListener('click', function () { dismissBanner('declined'); });
 
-      btnDecline.addEventListener('click', function () {
-        dismissBanner('declined');
-      });
-
-      // Fermeture au clavier : Échap referme le bandeau avec "declined"
-      // si celui-ci est visible, pour rester accessible sans souris.
       document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && !banner.hidden) {
-          dismissBanner('declined');
-        }
+        if (e.key === 'Escape' && !banner.hidden) { dismissBanner('declined'); }
       });
     })();
 
     // ═══════════════════════════════════════════════════════════════════
-    // TOKEN CSRF — génération et injection dans les formulaires
+    // CONFIGURATION API
+    // URL du backend Railway. Modifier uniquement quand le service
+    // Railway est provisionné et l'URL définitive connue.
+    // ═══════════════════════════════════════════════════════════════════
+    var API_BASE_URL = 'https://optinkedin-api.railway.app';
+
+    // ═══════════════════════════════════════════════════════════════════
+    // CSRF — récupération du token serveur
     //
-    // Contexte : site statique sans backend actif en Sprint 1.
-    // Le token est généré côté client via crypto.getRandomValues,
-    // stocké en sessionStorage (scope onglet, effacé à la fermeture),
-    // et injecté comme champ hidden dans chaque formulaire d'analyse.
-    // Le backend Express le validera à réception via le même
-    // sessionStorage token transmis en header X-CSRF-Token sur le fetch.
+    // Stratégie :
+    //   1. Au chargement de la page, on tente de récupérer un token CSRF
+    //      depuis GET /api/csrf-token (backend Railway).
+    //   2. Le token reçu (signé HMAC-SHA256, TTL 15 min) est mis en
+    //      cache dans une variable module-scope avec son expiration.
+    //   3. Avant chaque soumission de formulaire, on vérifie si le token
+    //      en cache est encore valide (marge de 30 s). Si expiré ou absent,
+    //      on en demande un nouveau au backend.
+    //   4. Si le backend est inaccessible (Sprint 1, hors ligne), on
+    //      génère un token client de substitution via crypto.getRandomValues
+    //      et on le marque comme "dégradé". Le backend rejettera ce token
+    //      avec 403 quand il sera actif — comportement attendu et documenté.
     //
-    // Avantages sur un site statique :
-    //   - Empêche les soumissions cross-origin silencieuses (formulaires
-    //     HTML natifs d'autres pages ne peuvent pas lire sessionStorage).
-    //   - Prépare la validation backend sans aucune dépendance externe.
+    // Cette approche garantit :
+    //   - Zéro blocage utilisateur si le backend est absent.
+    //   - Sécurité réelle dès que le backend est en ligne.
+    //   - Pas de token long-lived en sessionStorage (TTL 15 min).
+    // ═══════════════════════════════════════════════════════════════════
+    var csrfCache = {
+      token: null,       // string | null
+      expiresAt: 0,      // timestamp Unix en secondes
+      degraded: false    // true = token client de substitution (pas de backend)
+    };
+
+    // Marge de sécurité avant expiration pour déclencher un rafraîchissement.
+    var CSRF_REFRESH_MARGIN_SECONDS = 30;
+
+    /**
+     * Génère un token client de substitution (fallback sans backend).
+     * Ce token sera rejeté par le middleware CSRF serveur dès que le
+     * backend sera actif — c'est le comportement attendu.
+     */
+    function generateFallbackCsrfToken() {
+      var bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes)
+        .map(function (b) { return b.toString(16).padStart(2, '0'); })
+        .join('');
+    }
+
+    /**
+     * Vérifie si le token en cache est encore utilisable.
+     * Retourne false si absent, expiré (avec marge), ou dégradé.
+     */
+    function isCachedTokenFresh() {
+      if (!csrfCache.token || csrfCache.degraded) { return false; }
+      var nowSeconds = Math.floor(Date.now() / 1000);
+      return csrfCache.expiresAt - nowSeconds > CSRF_REFRESH_MARGIN_SECONDS;
+    }
+
+    /**
+     * Récupère un token CSRF valide.
+     * Tente d'abord le backend ; en cas d'échec, utilise le fallback client.
+     * Retourne une Promise<string> dans tous les cas.
+     */
+    function fetchCsrfToken() {
+      if (isCachedTokenFresh()) {
+        return Promise.resolve(csrfCache.token);
+      }
+
+      return fetch(API_BASE_URL + '/api/csrf-token', {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        // Timeout de 4 s : si le backend ne répond pas, on bascule en fallback.
+        signal: (function () {
+          try { return AbortSignal.timeout(4000); } catch (e) { return undefined; }
+        })()
+      })
+      .then(function (res) {
+        if (!res.ok) { throw new Error('HTTP ' + res.status); }
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data.token || typeof data.token !== 'string') {
+          throw new Error('Réponse CSRF malformée');
+        }
+        csrfCache.token     = data.token;
+        csrfCache.expiresAt = typeof data.expiresAt === 'number' ? data.expiresAt : 0;
+        csrfCache.degraded  = false;
+        // Expose le token pour les modules JS futurs (analyzer.js, premium.js).
+        window.__csrfToken  = data.token;
+        return data.token;
+      })
+      .catch(function () {
+        // Backend inaccessible : fallback client. Documenté comme dégradé.
+        var fallback = generateFallbackCsrfToken();
+        csrfCache.token     = fallback;
+        csrfCache.expiresAt = Math.floor(Date.now() / 1000) + 900; // 15 min
+        csrfCache.degraded  = true;
+        window.__csrfToken  = fallback;
+        return fallback;
+      });
+    }
+
+    // Préchargement du token au chargement de la page pour que la
+    // soumission du formulaire soit instantanée (pas d'attente réseau
+    // au moment du clic).
+    fetchCsrfToken();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ANTI-DOUBLE-SUBMIT avec validation CSRF serveur
     // ═══════════════════════════════════════════════════════════════════
     (function () {
-      var CSRF_KEY = 'optinkedin_csrf_token';
-
-      // Génère un token hex de 32 octets (256 bits) via l'API Web Crypto.
-      // Utilise le token existant dans sessionStorage si la session est
-      // déjà ouverte, pour éviter de régénérer à chaque navigation interne.
-      function generateCsrfToken() {
-        var existing = sessionStorage.getItem(CSRF_KEY);
-        if (existing) {
-          return existing;
-        }
-        var bytes  = new Uint8Array(32);
-        crypto.getRandomValues(bytes);
-        var token  = Array.from(bytes)
-          .map(function (b) { return b.toString(16).padStart(2, '0'); })
-          .join('');
-        sessionStorage.setItem(CSRF_KEY, token);
-        return token;
-      }
-
-      // Injecte un champ <input type="hidden"> portant le token CSRF
-      // dans le formulaire passé en paramètre. Idempotent : si un champ
-      // existe déjà (ex. navigation SPA future), met à jour sa valeur.
-      function injectCsrfField(form, token) {
-        var existing = form.querySelector('input[name="csrf_token"]');
-        if (existing) {
-          existing.value = token;
-          return;
-        }
-        var field    = document.createElement('input');
-        field.type   = 'hidden';
-        field.name   = 'csrf_token';
-        field.value  = token;
-        form.appendChild(field);
-      }
-
-      var csrfToken = generateCsrfToken();
-
-      // Injecte dans les deux formulaires d'analyse présents sur la page.
-      var formHero = document.getElementById('form-hero');
-      var formCta  = document.getElementById('form-cta');
-
-      if (formHero) { injectCsrfField(formHero, csrfToken); }
-      if (formCta)  { injectCsrfField(formCta,  csrfToken); }
-
-      // Expose le token sur window pour que les modules JS futurs
-      // (analyzer.js, premium.js) puissent l'ajouter au header
-      // X-CSRF-Token lors des appels fetch vers le backend.
-      window.__csrfToken = csrfToken;
-    })();
-
-    // ═══════════════════════════════════════════════════════════════════
-    // ANTI-DOUBLE-SUBMIT — désactivation du bouton pendant le traitement
-    //
-    // Attache un handler submit sur chaque formulaire d'analyse.
-    // Au submit :
-    //   1. Valide la présence et la forme du token CSRF (hex 64 chars).
-    //   2. Désactive le bouton submit + met à jour son texte.
-    //   3. Pose aria-busy="true" pour l'accessibilité.
-    //   4. Simule le traitement asynchrone (fetch vers backend Sprint 2).
-    //      En attendant le backend, un timeout de 3 s réactive le bouton
-    //      pour ne pas bloquer l'utilisateur indéfiniment.
-    //
-    // Le réarmement se fait systématiquement dans le bloc finally pour
-    // garantir que le bouton n'est jamais bloqué en cas d'erreur réseau.
-    // ═══════════════════════════════════════════════════════════════════
-    (function () {
-      var CSRF_KEY        = 'optinkedin_csrf_token';
-      // Regex : 64 caractères hexadécimaux (32 octets encodés).
-      var CSRF_HEX_REGEX  = /^[0-9a-f]{64}$/;
-
-      function getStoredToken() {
-        return sessionStorage.getItem(CSRF_KEY);
-      }
-
-      // Valide que le token injecté dans le formulaire correspond bien
-      // au token de session et respecte le format attendu.
-      function isTokenValid(formToken) {
-        if (!formToken || !CSRF_HEX_REGEX.test(formToken)) {
-          return false;
-        }
-        var storedToken = getStoredToken();
-        return storedToken !== null && formToken === storedToken;
-      }
-
-      // Passe le bouton en état "en cours" : désactivé, texte mis à jour,
-      // aria-busy positionné pour les lecteurs d'écran.
       function setButtonLoading(btn) {
-        btn.disabled          = true;
+        btn.disabled = true;
         btn.setAttribute('aria-busy', 'true');
-        var loadingText       = btn.getAttribute('data-loading-text');
-        if (loadingText) {
-          btn.textContent     = loadingText;
-        }
+        var loadingText = btn.getAttribute('data-loading-text');
+        if (loadingText) { btn.textContent = loadingText; }
       }
 
-      // Remet le bouton dans son état initial après traitement.
       function resetButton(btn) {
-        btn.disabled          = false;
+        btn.disabled = false;
         btn.removeAttribute('aria-busy');
-        var defaultText       = btn.getAttribute('data-default-text');
-        if (defaultText) {
-          btn.textContent     = defaultText;
-        }
+        var defaultText = btn.getAttribute('data-default-text');
+        if (defaultText) { btn.textContent = defaultText; }
       }
 
       function attachSubmitGuard(formId, submitBtnId) {
@@ -1783,52 +1769,42 @@
         form.addEventListener('submit', function (event) {
           event.preventDefault();
 
-          // Récupère le token injecté dans le formulaire.
-          var csrfField = form.querySelector('input[name="csrf_token"]');
-          var formToken = csrfField ? csrfField.value : '';
-
-          if (!isTokenValid(formToken)) {
-            // Token absent, malformé ou ne correspondant pas à la session :
-            // on bloque silencieusement sans exposer d'information sensible.
-            // Le formulaire est simplement réinitialisé pour permettre
-            // une nouvelle tentative après rechargement de page.
-            form.reset();
-            return;
-          }
-
-          // Empêche tout double-submit immédiat.
+          // Désactivation immédiate du bouton pour bloquer tout double-clic
+          // pendant la récupération asynchrone du token CSRF.
           setButtonLoading(btn);
 
-          // ── Branchement futur vers le backend ────────────────────────
-          // Quand le backend Railway sera actif (Sprint 2), remplacer le
-          // timeout ci-dessous par un appel fetch :
-          //
-          //   var urlInput = form.querySelector('input[name="linkedin_url"]');
-          //   fetch('https://optinkedin-api.railway.app/api/analyze', {
-          //     method: 'POST',
-          //     headers: {
-          //       'Content-Type': 'application/json',
-          //       'X-CSRF-Token': window.__csrfToken
-          //     },
-          //     body: JSON.stringify({ url: urlInput.value })
-          //   })
-          //   .then(function (res) { return res.json(); })
-          //   .then(function (data) { /* afficher résultats */ })
-          //   .catch(function (err) { /* afficher erreur utilisateur */ })
-          //   .finally(function () { resetButton(btn); });
-          //
-          // ─────────────────────────────────────────────────────────────
+          fetchCsrfToken()
+            .then(function (token) {
+              var urlInput = form.querySelector('input[name="linkedin_url"]');
+              var linkedinUrl = urlInput ? urlInput.value.trim() : '';
 
-          // HYPOTHÈSE : en Sprint 1, aucun backend n'est branché.
-          // On simule un aller-retour réseau de 3 s puis on réactive
-          // le bouton pour ne pas laisser l'utilisateur bloqué.
-          var fallbackTimer = setTimeout(function () {
-            resetButton(btn);
-          }, 3000);
+              // ── Branchement vers le backend (Sprint 2) ─────────────
+              // Remplacer le bloc ci-dessous par l'appel fetch réel :
+              //
+              //   return fetch(API_BASE_URL + '/api/analyze', {
+              //     method: 'POST',
+              //     headers: {
+              //       'Content-Type': 'application/json',
+              //       'X-CSRF-Token': token
+              //     },
+              //     body: JSON.stringify({ url: linkedinUrl })
+              //   })
+              //   .then(function (res) { return res.json(); })
+              //   .then(function (data) { /* afficher résultats */ });
+              //
+              // ───────────────────────────────────────────────────────
 
-          // Stocke le timer pour pouvoir l'annuler si le fetch futur
-          // répond avant le délai (évite un double-reset).
-          btn._fallbackTimer = fallbackTimer;
+              // HYPOTHÈSE : backend non branché en Sprint 1.
+              // Simule un aller-retour de 2 s puis réactive le bouton.
+              // Le token CSRF est bien récupéré et prêt pour le fetch réel.
+              void token; void linkedinUrl; // variables utilisées en Sprint 2
+              return new Promise(function (resolve) {
+                setTimeout(resolve, 2000);
+              });
+            })
+            .finally(function () {
+              resetButton(btn);
+            });
         });
       }
 
