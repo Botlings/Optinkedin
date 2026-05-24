@@ -873,7 +873,71 @@
       font-size: 0.8rem;
       color: rgba(255,255,255,0.55);
       position: relative;
-      z-index: 1;
+      z-index:1;
+    }
+
+    /* ─── PREMIUM RESULT BANNER ─────────────────────────────────────── */
+    /*
+     * Bandeau affiché après retour Stripe (session_id valide dans l'URL).
+     * Caché par défaut ; affiché par JS uniquement si session_id passe
+     * la validation stricte côté client.
+     */
+    #premium-result-banner {
+      display: none;
+      background: linear-gradient(135deg, #0A66C2 0%, #4f46e5 100%);
+      color: var(--white);
+      padding: 20px 24px;
+      position: relative;
+      z-index: 99;
+      margin-top: 64px; /* compense la nav fixe */
+    }
+
+    #premium-result-banner.visible {
+      display: block;
+    }
+
+    .premium-banner-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .premium-banner-text {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .premium-banner-text strong {
+      font-weight: 800;
+    }
+
+    .premium-banner-session {
+      font-size: 0.75rem;
+      opacity: 0.65;
+      font-family: monospace;
+      word-break: break-all;
+    }
+
+    .premium-banner-close {
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.30);
+      color: var(--white);
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    .premium-banner-close:hover {
+      background: rgba(255,255,255,0.28);
     }
 
     /* ─── FOOTER ────────────────────────────────────────────────────── */
@@ -1173,6 +1237,11 @@
         flex: 1;
         text-align: center;
       }
+
+      .premium-banner-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
 
     @media (max-width: 480px) {
@@ -1202,6 +1271,34 @@
       <a href="#hero" class="nav-cta">Analyser mon profil →</a>
     </div>
   </nav>
+
+  <!--
+    ─── PREMIUM RESULT BANNER ──────────────────────────────────────────
+    Affiché uniquement quand session_id est présent dans l'URL ET valide
+    (format strict validé par JS). Aucune donnée externe n'est injectée
+    via innerHTML — uniquement textContent et setAttribute.
+    Le session_id affiché est tronqué à 64 caractères pour limiter
+    l'espace visuel exploitable par une valeur forgée très longue.
+  -->
+  <div id="premium-result-banner" role="status" aria-live="polite" aria-atomic="true">
+    <div class="premium-banner-inner">
+      <div>
+        <p class="premium-banner-text">
+          🎉 <strong>Paiement confirmé — vos recommandations IA sont en cours de génération.</strong>
+          Vous recevrez un e-mail dès qu'elles seront prêtes.
+        </p>
+        <p class="premium-banner-session" id="premium-session-display"></p>
+      </div>
+      <button
+        type="button"
+        class="premium-banner-close"
+        id="premium-banner-close"
+        aria-label="Fermer ce bandeau"
+      >
+        Fermer ✕
+      </button>
+    </div>
+  </div>
 
   <!-- ─── HERO ─────────────────────────────────────────────────────── -->
   <section id="hero">
@@ -1603,6 +1700,145 @@
 
   <!-- ─── SCRIPTS ───────────────────────────────────────────────────── -->
   <script>
+    // ═══════════════════════════════════════════════════════════════════
+    // SÉCURITÉ — HELPERS XSS
+    //
+    // Toutes les données provenant de l'URL (query params) passent
+    // obligatoirement par ces fonctions avant tout usage dans le DOM.
+    // Règle absolue : jamais d'innerHTML avec une valeur externe.
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Encode les caractères HTML spéciaux pour neutraliser toute
+     * injection XSS dans un contexte texte.
+     * Couvre : & < > " ' /
+     *
+     * @param {string} raw - Valeur brute à encoder.
+     * @returns {string} Valeur sûre pour insertion via textContent.
+     */
+    function escapeHtml(raw) {
+      return String(raw)
+        .replace(/&/g,  '&amp;')
+        .replace(/</g,  '&lt;')
+        .replace(/>/g,  '&gt;')
+        .replace(/"/g,  '&quot;')
+        .replace(/'/g,  '&#x27;')
+        .replace(/\//g, '&#x2F;');
+    }
+
+    /**
+     * Lit un query param depuis l'URL courante de façon sûre.
+     * Retourne null si le paramètre est absent ou vide.
+     * N'effectue aucun décodage supplémentaire : URLSearchParams gère
+     * le percent-decoding, ce qui est suffisant et sécurisé.
+     *
+     * @param {string} name - Nom du paramètre à lire.
+     * @returns {string|null}
+     */
+    function getQueryParam(name) {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var value  = params.get(name);
+        return (value !== null && value.length > 0) ? value : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    /**
+     * Valide le format d'un session_id Stripe Checkout.
+     *
+     * Format attendu : "cs_" suivi de caractères alphanumériques,
+     * tirets et underscores, longueur totale 10–256 caractères.
+     *
+     * Ce format correspond aux IDs émis par Stripe Checkout
+     * (ex. "cs_live_a1B2c3..." ou "cs_test_xyz...").
+     * Toute valeur ne respectant pas ce pattern est rejetée
+     * silencieusement — aucun contenu externe n'est affiché.
+     *
+     * @param {string} value - Valeur brute du paramètre.
+     * @returns {boolean}
+     */
+    function isValidSessionId(value) {
+      if (typeof value !== 'string') { return false; }
+      // Longueur raisonnable : Stripe génère ~100 chars, on accepte jusqu'à 256.
+      if (value.length < 10 || value.length > 256) { return false; }
+      // Préfixe obligatoire cs_ (Checkout Session) suivi de chars sûrs.
+      return /^cs_[A-Za-z0-9_\-]+$/.test(value);
+    }
+
+    /**
+     * Retourne une version tronquée du session_id pour affichage,
+     * afin de limiter l'espace visuel exploitable et confirmer
+     * à l'utilisateur quel achat a été reconnu.
+     * Format : "cs_live_aBcD…XyZ" (8 chars début + … + 4 chars fin).
+     *
+     * @param {string} sessionId - Session ID validé.
+     * @returns {string}
+     */
+    function truncateSessionId(sessionId) {
+      if (sessionId.length <= 16) { return sessionId; }
+      return sessionId.slice(0, 12) + '…' + sessionId.slice(-4);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SESSION_ID — DÉTECTION ET AFFICHAGE SÉCURISÉ
+    //
+    // Flux : Stripe redirige vers ?session_id=cs_xxx après paiement.
+    // 1. On lit le param via getQueryParam (jamais location.href brut).
+    // 2. On valide le format strict (isValidSessionId).
+    // 3. On n'injecte que via textContent — jamais innerHTML.
+    // 4. On nettoie l'URL (replaceState) pour éviter que le session_id
+    //    reste visible dans l'historique navigateur et les logs de
+    //    référents tiers.
+    // 5. En cas de valeur invalide : rejet silencieux, banneau masqué.
+    // ═══════════════════════════════════════════════════════════════════
+    (function () {
+      var rawSessionId = getQueryParam('session_id');
+
+      // Aucun paramètre → comportement normal, rien à faire.
+      if (rawSessionId === null) { return; }
+
+      // Valeur présente mais format invalide → rejet silencieux.
+      // On nettoie quand même l'URL pour ne pas laisser de déchets.
+      if (!isValidSessionId(rawSessionId)) {
+        try {
+          window.history.replaceState(null, '', window.location.pathname);
+        } catch (e) { /* navigation privée peut restreindre replaceState */ }
+        return;
+      }
+
+      // ── Valeur valide : affichage sécurisé du bandeau ──────────────
+
+      var banner         = document.getElementById('premium-result-banner');
+      var sessionDisplay = document.getElementById('premium-session-display');
+      var closeBtn       = document.getElementById('premium-banner-close');
+
+      if (!banner || !sessionDisplay || !closeBtn) { return; }
+
+      // textContent uniquement — aucun risque d'injection HTML.
+      sessionDisplay.textContent = 'Réf. paiement : ' + truncateSessionId(rawSessionId);
+
+      // Expose le session_id validé pour les modules JS futurs
+      // (appel /api/recommendations). Jamais la valeur brute non validée.
+      window.__premiumSessionId = rawSessionId;
+
+      // Affichage du bandeau.
+      banner.classList.add('visible');
+
+      // Nettoyage de l'URL : supprime session_id de la barre d'adresse
+      // pour éviter partage accidentel, logs référents, et ré-affichage
+      // du bandeau si l'utilisateur copie/colle son URL.
+      try {
+        window.history.replaceState(null, '', window.location.pathname);
+      } catch (e) { /* silencieux */ }
+
+      // Fermeture manuelle du bandeau.
+      closeBtn.addEventListener('click', function () {
+        banner.classList.remove('visible');
+      });
+    })();
+
     // ═══════════════════════════════════════════════════════════════════
     // BANDEAU RGPD
     // ═══════════════════════════════════════════════════════════════════
