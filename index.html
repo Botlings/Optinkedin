@@ -1277,8 +1277,8 @@
     Affiché uniquement quand session_id est présent dans l'URL ET valide
     (format strict validé par JS). Aucune donnée externe n'est injectée
     via innerHTML — uniquement textContent et setAttribute.
-    Le session_id affiché est tronqué à 64 caractères pour limiter
-    l'espace visuel exploitable par une valeur forgée très longue.
+    Le session_id affiché est tronqué pour limiter l'espace visuel
+    exploitable par une valeur forgée très longue.
   -->
   <div id="premium-result-banner" role="status" aria-live="polite" aria-atomic="true">
     <div class="premium-banner-inner">
@@ -1634,7 +1634,7 @@
             <li><a href="#features">Fonctionnalités</a></li>
             <li><a href="#how-it-works">Comment ça marche</a></li>
             <li><a href="#pricing">Tarifs</a></li>
-            <li><a href="#testimonials">Témoignages</a></li>
+            <a href="#testimonials">Témoignages</a></li>
           </ul>
         </div>
 
@@ -1703,9 +1703,9 @@
     // ═══════════════════════════════════════════════════════════════════
     // SÉCURITÉ — HELPERS XSS
     //
-    // Toutes les données provenant de l'URL (query params) passent
-    // obligatoirement par ces fonctions avant tout usage dans le DOM.
-    // Règle absolue : jamais d'innerHTML avec une valeur externe.
+    // Règle absolue : toute donnée provenant de l'URL (query params,
+    // window.location.search) passe par ces fonctions avant tout usage
+    // dans le DOM. Jamais d'innerHTML avec une valeur externe.
     // ═══════════════════════════════════════════════════════════════════
 
     /**
@@ -1713,8 +1713,11 @@
      * injection XSS dans un contexte texte.
      * Couvre : & < > " ' /
      *
+     * Utilisé comme filet de sécurité supplémentaire ; la protection
+     * principale reste l'usage exclusif de textContent (jamais innerHTML).
+     *
      * @param {string} raw - Valeur brute à encoder.
-     * @returns {string} Valeur sûre pour insertion via textContent.
+     * @returns {string} Valeur encodée.
      */
     function escapeHtml(raw) {
       return String(raw)
@@ -1728,9 +1731,12 @@
 
     /**
      * Lit un query param depuis l'URL courante de façon sûre.
-     * Retourne null si le paramètre est absent ou vide.
-     * N'effectue aucun décodage supplémentaire : URLSearchParams gère
-     * le percent-decoding, ce qui est suffisant et sécurisé.
+     * Utilise URLSearchParams (gestion native du percent-decoding).
+     * Retourne null si le paramètre est absent, vide, ou en cas d'erreur.
+     *
+     * Vecteurs couverts :
+     *   - window.location.search jamais lu directement (délégué à URLSearchParams)
+     *   - try/catch protège contre les environnements sans URLSearchParams
      *
      * @param {string} name - Nom du paramètre à lire.
      * @returns {string|null}
@@ -1746,67 +1752,144 @@
     }
 
     /**
-     * Valide le format d'un session_id Stripe Checkout.
+     * Valide le format d'un session_id Stripe Checkout contre XSS
+     * et toute valeur forgée.
      *
-     * Format attendu : "cs_" suivi de caractères alphanumériques,
-     * tirets et underscores, longueur totale 10–256 caractères.
+     * ── Règles de validation ────────────────────────────────────────
      *
-     * Ce format correspond aux IDs émis par Stripe Checkout
-     * (ex. "cs_live_a1B2c3..." ou "cs_test_xyz...").
-     * Toute valeur ne respectant pas ce pattern est rejetée
-     * silencieusement — aucun contenu externe n'est affiché.
+     * 1. Type : doit être une string (rejette null, undefined, objets).
      *
-     * @param {string} value - Valeur brute du paramètre.
-     * @returns {boolean}
+     * 2. Longueur : 20–256 caractères.
+     *    - Min 20 : "cs_" (3) + préfixe "live_"/"test_" (5) + 12 chars
+     *      de payload = 20 au strict minimum pour un ID Stripe réaliste.
+     *      Exemple du plus court ID Stripe observé : ~50 chars en pratique.
+     *    - Max 256 : Stripe génère ~100 chars ; 256 laisse de la marge
+     *      sans ouvrir la porte à des payloads XSS longs.
+     *
+     * 3. Préfixe : doit commencer par "cs_live_" ou "cs_test_".
+     *    - "cs_" seul : rejeté (préfixe incomplet, non émis par Stripe).
+     *    - "cs_live" sans underscore : rejeté.
+     *    - Tout autre préfixe (ex. "pi_", "<script>") : rejeté.
+     *
+     * 4. Charset : après le préfixe, uniquement [A-Za-z0-9_-].
+     *    - Exclut : espaces, <, >, ", ', /, =, &, %, #, (, ), \n, \r…
+     *    - Ces caractères sont les vecteurs classiques d'injection XSS,
+     *      SQL, et de manipulation d'URL.
+     *
+     * ── Cas limites documentés ──────────────────────────────────────
+     *
+     * Rejetés (exemples) :
+     *   ""                          → longueur < 20
+     *   "cs_"                       → longueur < 20, préfixe incomplet
+     *   "cs_live_"                  → longueur < 20 (8 chars)
+     *   "cs_live_abc"               → longueur < 20 (11 chars)
+     *   "cs_prod_abc123..."         → préfixe "cs_prod_" non reconnu
+     *   "<script>alert(1)</script>" → charset invalide + préfixe invalide
+     *   "cs_live_abc<script>"       → charset invalide (< interdit)
+     *   "cs_live_" + "A".repeat(249)→ longueur > 256
+     *   "cs_live_abc def"           → espace interdit dans charset
+     *   "cs_live_abc\nxss"          → \n interdit dans charset
+     *   "javascript:alert(1)"       → préfixe invalide
+     *   "cs_test_abc%3Cscript%3E"   → URLSearchParams décode avant
+     *                                  validation → < détecté par charset
+     *
+     * Acceptés (exemples) :
+     *   "cs_live_a1B2c3D4e5F6g7H8i9J0" (27 chars) → valide
+     *   "cs_test_xYz123-abc_DEF456"              → valide
+     *   "cs_live_" + "A".repeat(248)             → 256 chars, limite haute
+     *
+     * @param {string} value - Valeur brute du paramètre session_id.
+     * @returns {boolean} true si le format est conforme à un ID Stripe.
      */
     function isValidSessionId(value) {
       if (typeof value !== 'string') { return false; }
-      // Longueur raisonnable : Stripe génère ~100 chars, on accepte jusqu'à 256.
-      if (value.length < 10 || value.length > 256) { return false; }
-      // Préfixe obligatoire cs_ (Checkout Session) suivi de chars sûrs.
-      return /^cs_[A-Za-z0-9_\-]+$/.test(value);
+
+      // Longueur : min 20, max 256.
+      if (value.length < 20 || value.length > 256) { return false; }
+
+      // Préfixe obligatoire : cs_live_ ou cs_test_ (les deux seuls
+      // modes émis par l'API Stripe Checkout).
+      if (
+        value.indexOf('cs_live_') !== 0 &&
+        value.indexOf('cs_test_') !== 0
+      ) {
+        return false;
+      }
+
+      // Charset strict après le préfixe : alphanumérique + _ et -.
+      // On valide la chaîne entière (préfixe inclus) car les chars du
+      // préfixe sont eux-mêmes dans le charset autorisé.
+      return /^[A-Za-z0-9_\-]+$/.test(value);
     }
 
     /**
      * Retourne une version tronquée du session_id pour affichage,
-     * afin de limiter l'espace visuel exploitable et confirmer
-     * à l'utilisateur quel achat a été reconnu.
-     * Format : "cs_live_aBcD…XyZ" (8 chars début + … + 4 chars fin).
+     * afin de confirmer à l'utilisateur quel achat a été reconnu
+     * sans exposer l'identifiant complet dans le DOM.
      *
-     * @param {string} sessionId - Session ID validé.
-     * @returns {string}
+     * Format : "cs_live_aBcD…XyZ"
+     *   - 12 premiers caractères (couvre "cs_live_" + 4 chars de payload)
+     *   - "…" (ellipsis Unicode, non interprétable comme HTML)
+     *   - 4 derniers caractères
+     *
+     * Exemple : "cs_live_abcdefghij1234klmnop" → "cs_live_abcd…mnop"
+     *
+     * @param {string} sessionId - Session ID déjà validé par isValidSessionId.
+     * @returns {string} Représentation tronquée sûre pour textContent.
      */
     function truncateSessionId(sessionId) {
+      // Si l'ID est court (cas théorique : longueur entre 20 et 16+4),
+      // on affiche sans troncature plutôt que de produire un résultat
+      // absurde (début et fin qui se chevauchent).
       if (sessionId.length <= 16) { return sessionId; }
-      return sessionId.slice(0, 12) + '…' + sessionId.slice(-4);
+      return sessionId.slice(0, 12) + '\u2026' + sessionId.slice(-4);
     }
 
     // ═══════════════════════════════════════════════════════════════════
     // SESSION_ID — DÉTECTION ET AFFICHAGE SÉCURISÉ
     //
-    // Flux : Stripe redirige vers ?session_id=cs_xxx après paiement.
-    // 1. On lit le param via getQueryParam (jamais location.href brut).
-    // 2. On valide le format strict (isValidSessionId).
-    // 3. On n'injecte que via textContent — jamais innerHTML.
-    // 4. On nettoie l'URL (replaceState) pour éviter que le session_id
-    //    reste visible dans l'historique navigateur et les logs de
-    //    référents tiers.
-    // 5. En cas de valeur invalide : rejet silencieux, banneau masqué.
+    // Flux post-paiement Stripe :
+    //   Stripe redirige vers :
+    //   https://botlings.github.io/Optinkedin/?session_id=cs_live_xxx
+    //
+    // Pipeline de sécurité :
+    //   1. getQueryParam()     → lit via URLSearchParams (jamais location.href brut)
+    //   2. isValidSessionId()  → valide préfixe + charset + longueur
+    //   3. textContent         → injection DOM sans risque XSS
+    //   4. replaceState()      → nettoie l'URL dans TOUS les cas
+    //      (valide ET invalide) pour éviter :
+    //      a. Partage accidentel du session_id dans l'URL copiée
+    //      b. Ré-affichage du bandeau si l'utilisateur rafraîchit
+    //      c. Fuite du session_id dans les logs de référents tiers
+    //   5. window.__premiumSessionId → exposé uniquement si valide,
+    //      pour les modules JS futurs (/api/recommendations).
+    //      Jamais la valeur brute non validée.
+    //
+    // En cas de valeur invalide : rejet silencieux, bandeau masqué,
+    // URL nettoyée. Aucun message d'erreur affiché (ne pas aider un
+    // attaquant à calibrer ses payloads).
     // ═══════════════════════════════════════════════════════════════════
     (function () {
       var rawSessionId = getQueryParam('session_id');
 
-      // Aucun paramètre → comportement normal, rien à faire.
+      // Nettoyage systématique de l'URL dès qu'un paramètre session_id
+      // est détecté — qu'il soit valide ou non. Placé en premier pour
+      // garantir l'exécution même si une erreur survient plus bas.
+      if (rawSessionId !== null) {
+        try {
+          window.history.replaceState(null, '', window.location.pathname);
+        } catch (e) {
+          // Navigation privée ou environnement restreint : silencieux.
+          // L'affichage du bandeau peut continuer sans le nettoyage d'URL.
+        }
+      }
+
+      // Aucun paramètre session_id dans l'URL → comportement normal.
       if (rawSessionId === null) { return; }
 
       // Valeur présente mais format invalide → rejet silencieux.
-      // On nettoie quand même l'URL pour ne pas laisser de déchets.
-      if (!isValidSessionId(rawSessionId)) {
-        try {
-          window.history.replaceState(null, '', window.location.pathname);
-        } catch (e) { /* navigation privée peut restreindre replaceState */ }
-        return;
-      }
+      // L'URL a déjà été nettoyée ci-dessus.
+      if (!isValidSessionId(rawSessionId)) { return; }
 
       // ── Valeur valide : affichage sécurisé du bandeau ──────────────
 
@@ -1814,26 +1897,24 @@
       var sessionDisplay = document.getElementById('premium-session-display');
       var closeBtn       = document.getElementById('premium-banner-close');
 
+      // Éléments DOM absents (ne devrait pas arriver, mais defensive coding).
       if (!banner || !sessionDisplay || !closeBtn) { return; }
 
-      // textContent uniquement — aucun risque d'injection HTML.
-      sessionDisplay.textContent = 'Réf. paiement : ' + truncateSessionId(rawSessionId);
+      // textContent uniquement — jamais innerHTML.
+      // escapeHtml() est appelé en couche supplémentaire bien que
+      // textContent soit déjà sûr par nature (aucune interprétation HTML).
+      sessionDisplay.textContent = 'R\u00e9f. paiement\u00a0: ' + truncateSessionId(escapeHtml(rawSessionId));
 
-      // Expose le session_id validé pour les modules JS futurs
-      // (appel /api/recommendations). Jamais la valeur brute non validée.
+      // Expose le session_id validé pour les modules JS futurs.
+      // Intentionnel : window.__premiumSessionId est la seule variable
+      // globale portant cette valeur ; elle est typée string, validée,
+      // et utilisée uniquement pour des appels fetch() vers le backend.
       window.__premiumSessionId = rawSessionId;
 
       // Affichage du bandeau.
       banner.classList.add('visible');
 
-      // Nettoyage de l'URL : supprime session_id de la barre d'adresse
-      // pour éviter partage accidentel, logs référents, et ré-affichage
-      // du bandeau si l'utilisateur copie/colle son URL.
-      try {
-        window.history.replaceState(null, '', window.location.pathname);
-      } catch (e) { /* silencieux */ }
-
-      // Fermeture manuelle du bandeau.
+      // Fermeture manuelle.
       closeBtn.addEventListener('click', function () {
         banner.classList.remove('visible');
       });
@@ -1856,8 +1937,8 @@
         try {
           localStorage.setItem(STORAGE_KEY, choice);
         } catch (e) {
-          // localStorage indisponible (navigation privée restrictive) : on
-          // masque quand même le bandeau pour cette session.
+          // localStorage indisponible (navigation privée restrictive) :
+          // on masque quand même le bandeau pour cette session.
         }
         banner.hidden = true;
       }
@@ -1904,7 +1985,6 @@
       degraded: false    // true = token client de substitution (pas de backend)
     };
 
-    // Marge de sécurité avant expiration pour déclencher un rafraîchissement.
     var CSRF_REFRESH_MARGIN_SECONDS = 30;
 
     /**
@@ -1943,7 +2023,6 @@
       return fetch(API_BASE_URL + '/api/csrf-token', {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
-        // Timeout de 4 s : si le backend ne répond pas, on bascule en fallback.
         signal: (function () {
           try { return AbortSignal.timeout(4000); } catch (e) { return undefined; }
         })()
@@ -1959,24 +2038,21 @@
         csrfCache.token     = data.token;
         csrfCache.expiresAt = typeof data.expiresAt === 'number' ? data.expiresAt : 0;
         csrfCache.degraded  = false;
-        // Expose le token pour les modules JS futurs (analyzer.js, premium.js).
         window.__csrfToken  = data.token;
         return data.token;
       })
       .catch(function () {
-        // Backend inaccessible : fallback client. Documenté comme dégradé.
         var fallback = generateFallbackCsrfToken();
         csrfCache.token     = fallback;
-        csrfCache.expiresAt = Math.floor(Date.now() / 1000) + 900; // 15 min
+        csrfCache.expiresAt = Math.floor(Date.now() / 1000) + 900;
         csrfCache.degraded  = true;
         window.__csrfToken  = fallback;
         return fallback;
       });
     }
 
-    // Préchargement du token au chargement de la page pour que la
-    // soumission du formulaire soit instantanée (pas d'attente réseau
-    // au moment du clic).
+    // Préchargement au chargement de la page pour que la soumission
+    // du formulaire soit instantanée (pas d'attente réseau au clic).
     fetchCsrfToken();
 
     // ═══════════════════════════════════════════════════════════════════
@@ -2005,13 +2081,11 @@
         form.addEventListener('submit', function (event) {
           event.preventDefault();
 
-          // Désactivation immédiate du bouton pour bloquer tout double-clic
-          // pendant la récupération asynchrone du token CSRF.
           setButtonLoading(btn);
 
           fetchCsrfToken()
             .then(function (token) {
-              var urlInput = form.querySelector('input[name="linkedin_url"]');
+              var urlInput    = form.querySelector('input[name="linkedin_url"]');
               var linkedinUrl = urlInput ? urlInput.value.trim() : '';
 
               // ── Branchement vers le backend (Sprint 2) ─────────────
@@ -2030,10 +2104,8 @@
               //
               // ───────────────────────────────────────────────────────
 
-              // HYPOTHÈSE : backend non branché en Sprint 1.
-              // Simule un aller-retour de 2 s puis réactive le bouton.
-              // Le token CSRF est bien récupéré et prêt pour le fetch réel.
-              void token; void linkedinUrl; // variables utilisées en Sprint 2
+              // Sprint 1 : backend non branché. Simule 2 s puis réactive.
+              void token; void linkedinUrl;
               return new Promise(function (resolve) {
                 setTimeout(resolve, 2000);
               });
