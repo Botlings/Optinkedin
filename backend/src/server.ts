@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
 import csrfRouter from './routes/csrf.js';
+import webhookRouter from './routes/webhook.js';
 import { csrfMiddleware } from './middleware/csrf.js';
 import type { Request, Response, NextFunction } from 'express';
 
@@ -10,8 +11,6 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 // ─── Validation de la configuration critique au démarrage ─────────────────────
-// Fail-fast : si CSRF_SECRET est absent ou trop court, le serveur refuse
-// de démarrer plutôt que de fonctionner sans protection.
 const csrfSecret = process.env.CSRF_SECRET;
 if (!csrfSecret || csrfSecret.length < 32) {
   console.error(
@@ -27,8 +26,6 @@ const allowedOrigin = process.env.ALLOWED_ORIGIN ?? 'https://botlings.github.io'
 
 app.use(
   helmet({
-    // Le Content-Security-Policy est géré côté GitHub Pages dans index.html.
-    // Côté API, on active uniquement les headers HTTP pertinents.
     contentSecurityPolicy: false,
   })
 );
@@ -38,18 +35,32 @@ app.use(
     origin: allowedOrigin,
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'X-CSRF-Token'],
-    maxAge: 600, // Cache preflight 10 minutes.
+    maxAge: 600,
   })
 );
 
-// Parse le corps JSON uniquement pour les routes qui en ont besoin.
-// Limite à 64 KB pour éviter les attaques par payload géant.
+// ─── Route Stripe webhook — AVANT express.json() ──────────────────────────────
+//
+// Stripe exige le raw body (Buffer non parsé) pour vérifier la signature
+// HMAC-SHA256 via stripe.webhooks.constructEvent().
+// express.raw() est monté UNIQUEMENT sur /api/stripe/webhook, avant que
+// le express.json() global ne puisse altérer le body.
+//
+// ⚠ L'ordre de déclaration est critique : cette route DOIT précéder
+// app.use(express.json(...)) ci-dessous.
+app.use(
+  '/api/stripe/webhook',
+  express.raw({ type: 'application/json', limit: '1mb' }),
+  webhookRouter
+);
+
+// ─── Parsing JSON global (exclu de la route webhook ci-dessus) ────────────────
 app.use(express.json({ limit: '64kb' }));
 
 // ─── Rate limiting global sur /api ────────────────────────────────────────────
 
 const globalApiLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 heure
+  windowMs: 60 * 60 * 1000,
   max: Number(process.env.RATE_LIMIT_GLOBAL ?? 100),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
@@ -61,24 +72,23 @@ const globalApiLimiter = rateLimit({
 
 app.use('/api', globalApiLimiter);
 
-// ─── Middleware CSRF (appliqué sur toutes les routes POST /api) ───────────────
-// Le middleware csrfMiddleware ignore les méthodes GET/HEAD/OPTIONS,
-// donc le placer globalement sur /api est sans effet sur les GET.
+// ─── Middleware CSRF (routes POST /api — hors webhook Stripe) ─────────────────
+//
+// Le webhook Stripe est exempté du CSRF : l'authenticité est garantie
+// par la vérification de signature HMAC dans webhookRouter lui-même.
+// Le middleware csrfMiddleware est appliqué après /api/stripe/webhook
+// dans l'arbre de routage, mais Express évalue les routes dans l'ordre
+// de déclaration — la route webhook est montée avant app.use('/api', csrfMiddleware)
+// et Express ne la re-passe pas par les middlewares /api suivants.
 app.use('/api', csrfMiddleware);
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-// Délivre un token CSRF au frontend (GET — non bloqué par csrfMiddleware).
 app.use('/api/csrf-token', csrfRouter);
 
-// Health check sans CSRF ni rate-limit individuel (couvert par le global).
 app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-
-// ─── Placeholder routes (à remplacer en Sprint 2) ─────────────────────────────
-// Ces routes retournent 501 pour signaler qu'elles ne sont pas encore
-// implémentées, tout en validant correctement le CSRF via le middleware global.
 
 app.post('/api/analyze', (_req, res) => {
   res.status(501).json({
@@ -97,7 +107,6 @@ app.post('/api/recommendations', (_req, res) => {
 // ─── Gestionnaire d'erreurs global ────────────────────────────────────────────
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  // Ne jamais exposer le détail de l'erreur en production.
   const isProduction = process.env.NODE_ENV === 'production';
   const message = isProduction
     ? 'Une erreur interne est survenue.'
