@@ -388,7 +388,7 @@
     .dot-orange { background: #f59e0b; }
     .dot-red    { background: #ef4444; }
 
-    /* ─── SOCIAL PROOF BAND ────────────────────────────────────────── */
+    /* ──── SOCIAL PROOF BAND ────────────────────────────────────────── */
     #social-proof-band {
       padding: 28px 0;
       background: var(--gray-50);
@@ -877,11 +877,6 @@
     }
 
     /* ─── PREMIUM RESULT BANNER ─────────────────────────────────────── */
-    /*
-     * Bandeau affiché après retour Stripe (session_id valide dans l'URL).
-     * Caché par défaut ; affiché par JS uniquement si session_id passe
-     * la validation stricte côté client.
-     */
     #premium-result-banner {
       display: none;
       background: linear-gradient(135deg, #0A66C2 0%, #4f46e5 100%);
@@ -889,7 +884,7 @@
       padding: 20px 24px;
       position: relative;
       z-index: 99;
-      margin-top: 64px; /* compense la nav fixe */
+      margin-top: 64px;
     }
 
     #premium-result-banner.visible {
@@ -938,6 +933,130 @@
 
     .premium-banner-close:hover {
       background: rgba(255,255,255,0.28);
+    }
+
+    /* ─── FORGET SECTION ────────────────────────────────────────────── */
+    /*
+     * Section droit à l'oubli RGPD art. 17.
+     * Intégrée dans le footer pour rester accessible sans encombrer
+     * le parcours principal.
+     */
+    #forget-section {
+      background: var(--gray-900);
+      padding: 48px 0 0;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .forget-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: var(--radius-card);
+      padding: 32px 36px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .forget-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .forget-desc {
+      font-size: 0.85rem;
+      color: var(--gray-400);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .forget-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .forget-input {
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      color: var(--white);
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .forget-input::placeholder {
+      color: rgba(255,255,255,0.35);
+    }
+
+    .forget-input:focus {
+      border-color: rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.09);
+    }
+
+    .forget-input.error {
+      border-color: #ef4444;
+    }
+
+    .forget-btn {
+      align-self: flex-start;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: var(--gray-400);
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+      white-space: nowrap;
+    }
+
+    .forget-btn:hover:not(:disabled) {
+      color: var(--white);
+      border-color: rgba(255,255,255,0.45);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .forget-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .forget-feedback {
+      font-size: 0.83rem;
+      line-height: 1.5;
+      padding: 10px 14px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .forget-feedback.success {
+      display: block;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.30);
+      color: #6ee7b7;
+    }
+
+    .forget-feedback.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.30);
+      color: #fca5a5;
+    }
+
+    .forget-legal-note {
+      margin-top: 14px;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.25);
+      line-height: 1.5;
     }
 
     /* ─── FOOTER ────────────────────────────────────────────────────── */
@@ -1241,6 +1360,15 @@
       .premium-banner-inner {
         flex-direction: column;
         align-items: flex-start;
+      }
+
+      .forget-card {
+        padding: 24px 20px;
+      }
+
+      .forget-btn {
+        align-self: stretch;
+        text-align: center;
       }
     }
 
@@ -1618,6 +1746,71 @@
     </div>
   </section>
 
+  <!-- ─── DROIT À L'OUBLI RGPD ─────────────────────────────────────── -->
+  <!--
+    Section art. 17 RGPD — accessible depuis le footer.
+    Permet à tout utilisateur de demander la suppression de ses données
+    (email + URL LinkedIn) conservées en session mémoire post-paiement.
+    L'endpoint DELETE /api/account répond 200 dans tous les cas pour
+    éviter l'énumération — un message de confirmation est toujours affiché.
+  -->
+  <div id="forget-section">
+    <div class="container">
+      <div class="forget-card">
+        <p class="forget-title">🗑️ Droit à l'oubli — RGPD art. 17</p>
+        <p class="forget-desc">
+          Conformément au Règlement Général sur la Protection des Données (RGPD),
+          vous pouvez demander la suppression immédiate de toutes vos données
+          personnelles (adresse e-mail, URL de profil LinkedIn) conservées dans
+          nos systèmes. La suppression est effective instantanément.
+        </p>
+        <form class="forget-form" id="form-forget" novalidate>
+          <input
+            type="email"
+            class="forget-input"
+            id="forget-email"
+            name="email"
+            placeholder="Votre adresse e-mail (utilisée lors du paiement)"
+            aria-label="Adresse e-mail associée à votre compte"
+            autocomplete="email"
+            spellcheck="false"
+          />
+          <input
+            type="text"
+            class="forget-input"
+            id="forget-session"
+            name="session_id"
+            placeholder="Référence de paiement (optionnel — ex: cs_live_…)"
+            aria-label="Référence de paiement Stripe (optionnel)"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button
+            type="submit"
+            class="forget-btn"
+            id="forget-submit"
+          >
+            Supprimer mes données
+          </button>
+          <div
+            class="forget-feedback"
+            id="forget-feedback"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          ></div>
+        </form>
+        <p class="forget-legal-note">
+          Au moins un champ (e-mail ou référence de paiement) est requis.
+          Cette demande supprime les données de session active uniquement.
+          Les données transmises à Stripe sont régies par leur
+          <a href="https://stripe.com/fr/privacy" target="_blank" rel="noopener noreferrer" style="color:rgba(255,255,255,0.35);text-decoration:underline;">politique de confidentialité</a>.
+          Délai de traitement : immédiat (systèmes actifs) / 30 jours max (sauvegardes).
+        </p>
+      </div>
+    </div>
+  </div>
+
   <!-- ─── FOOTER ────────────────────────────────────────────────────── -->
   <footer>
     <div class="container">
@@ -1634,7 +1827,7 @@
             <li><a href="#features">Fonctionnalités</a></li>
             <li><a href="#how-it-works">Comment ça marche</a></li>
             <li><a href="#pricing">Tarifs</a></li>
-            <a href="#testimonials">Témoignages</a></li>
+            <li><a href="#testimonials">Témoignages</a></li>
           </ul>
         </div>
 
@@ -1653,7 +1846,7 @@
             <li><a href="#" rel="noopener noreferrer">Mentions légales</a></li>
             <li><a href="#" rel="noopener noreferrer">Politique de confidentialité</a></li>
             <li><a href="#" rel="noopener noreferrer">CGU</a></li>
-            <li><a href="#" rel="noopener noreferrer">RGPD</a></li>
+            <li><a href="#forget-section" rel="noopener noreferrer">Droit à l'oubli (RGPD)</a></li>
           </ul>
         </div>
 
@@ -1702,23 +1895,8 @@
   <script>
     // ═══════════════════════════════════════════════════════════════════
     // SÉCURITÉ — HELPERS XSS
-    //
-    // Règle absolue : toute donnée provenant de l'URL (query params,
-    // window.location.search) passe par ces fonctions avant tout usage
-    // dans le DOM. Jamais d'innerHTML avec une valeur externe.
     // ═══════════════════════════════════════════════════════════════════
 
-    /**
-     * Encode les caractères HTML spéciaux pour neutraliser toute
-     * injection XSS dans un contexte texte.
-     * Couvre : & < > " ' /
-     *
-     * Utilisé comme filet de sécurité supplémentaire ; la protection
-     * principale reste l'usage exclusif de textContent (jamais innerHTML).
-     *
-     * @param {string} raw - Valeur brute à encoder.
-     * @returns {string} Valeur encodée.
-     */
     function escapeHtml(raw) {
       return String(raw)
         .replace(/&/g,  '&amp;')
@@ -1729,18 +1907,6 @@
         .replace(/\//g, '&#x2F;');
     }
 
-    /**
-     * Lit un query param depuis l'URL courante de façon sûre.
-     * Utilise URLSearchParams (gestion native du percent-decoding).
-     * Retourne null si le paramètre est absent, vide, ou en cas d'erreur.
-     *
-     * Vecteurs couverts :
-     *   - window.location.search jamais lu directement (délégué à URLSearchParams)
-     *   - try/catch protège contre les environnements sans URLSearchParams
-     *
-     * @param {string} name - Nom du paramètre à lire.
-     * @returns {string|null}
-     */
     function getQueryParam(name) {
       try {
         var params = new URLSearchParams(window.location.search);
@@ -1751,170 +1917,51 @@
       }
     }
 
-    /**
-     * Valide le format d'un session_id Stripe Checkout contre XSS
-     * et toute valeur forgée.
-     *
-     * ── Règles de validation ────────────────────────────────────────
-     *
-     * 1. Type : doit être une string (rejette null, undefined, objets).
-     *
-     * 2. Longueur : 20–256 caractères.
-     *    - Min 20 : "cs_" (3) + préfixe "live_"/"test_" (5) + 12 chars
-     *      de payload = 20 au strict minimum pour un ID Stripe réaliste.
-     *      Exemple du plus court ID Stripe observé : ~50 chars en pratique.
-     *    - Max 256 : Stripe génère ~100 chars ; 256 laisse de la marge
-     *      sans ouvrir la porte à des payloads XSS longs.
-     *
-     * 3. Préfixe : doit commencer par "cs_live_" ou "cs_test_".
-     *    - "cs_" seul : rejeté (préfixe incomplet, non émis par Stripe).
-     *    - "cs_live" sans underscore : rejeté.
-     *    - Tout autre préfixe (ex. "pi_", "<script>") : rejeté.
-     *
-     * 4. Charset : après le préfixe, uniquement [A-Za-z0-9_-].
-     *    - Exclut : espaces, <, >, ", ', /, =, &, %, #, (, ), \n, \r…
-     *    - Ces caractères sont les vecteurs classiques d'injection XSS,
-     *      SQL, et de manipulation d'URL.
-     *
-     * ── Cas limites documentés ──────────────────────────────────────
-     *
-     * Rejetés (exemples) :
-     *   ""                          → longueur < 20
-     *   "cs_"                       → longueur < 20, préfixe incomplet
-     *   "cs_live_"                  → longueur < 20 (8 chars)
-     *   "cs_live_abc"               → longueur < 20 (11 chars)
-     *   "cs_prod_abc123..."         → préfixe "cs_prod_" non reconnu
-     *   "<script>alert(1)</script>" → charset invalide + préfixe invalide
-     *   "cs_live_abc<script>"       → charset invalide (< interdit)
-     *   "cs_live_" + "A".repeat(249)→ longueur > 256
-     *   "cs_live_abc def"           → espace interdit dans charset
-     *   "cs_live_abc\nxss"          → \n interdit dans charset
-     *   "javascript:alert(1)"       → préfixe invalide
-     *   "cs_test_abc%3Cscript%3E"   → URLSearchParams décode avant
-     *                                  validation → < détecté par charset
-     *
-     * Acceptés (exemples) :
-     *   "cs_live_a1B2c3D4e5F6g7H8i9J0" (27 chars) → valide
-     *   "cs_test_xYz123-abc_DEF456"              → valide
-     *   "cs_live_" + "A".repeat(248)             → 256 chars, limite haute
-     *
-     * @param {string} value - Valeur brute du paramètre session_id.
-     * @returns {boolean} true si le format est conforme à un ID Stripe.
-     */
     function isValidSessionId(value) {
       if (typeof value !== 'string') { return false; }
-
-      // Longueur : min 20, max 256.
       if (value.length < 20 || value.length > 256) { return false; }
-
-      // Préfixe obligatoire : cs_live_ ou cs_test_ (les deux seuls
-      // modes émis par l'API Stripe Checkout).
       if (
         value.indexOf('cs_live_') !== 0 &&
         value.indexOf('cs_test_') !== 0
       ) {
         return false;
       }
-
-      // Charset strict après le préfixe : alphanumérique + _ et -.
-      // On valide la chaîne entière (préfixe inclus) car les chars du
-      // préfixe sont eux-mêmes dans le charset autorisé.
       return /^[A-Za-z0-9_\-]+$/.test(value);
     }
 
-    /**
-     * Retourne une version tronquée du session_id pour affichage,
-     * afin de confirmer à l'utilisateur quel achat a été reconnu
-     * sans exposer l'identifiant complet dans le DOM.
-     *
-     * Format : "cs_live_aBcD…XyZ"
-     *   - 12 premiers caractères (couvre "cs_live_" + 4 chars de payload)
-     *   - "…" (ellipsis Unicode, non interprétable comme HTML)
-     *   - 4 derniers caractères
-     *
-     * Exemple : "cs_live_abcdefghij1234klmnop" → "cs_live_abcd…mnop"
-     *
-     * @param {string} sessionId - Session ID déjà validé par isValidSessionId.
-     * @returns {string} Représentation tronquée sûre pour textContent.
-     */
     function truncateSessionId(sessionId) {
-      // Si l'ID est court (cas théorique : longueur entre 20 et 16+4),
-      // on affiche sans troncature plutôt que de produire un résultat
-      // absurde (début et fin qui se chevauchent).
       if (sessionId.length <= 16) { return sessionId; }
       return sessionId.slice(0, 12) + '\u2026' + sessionId.slice(-4);
     }
 
     // ═══════════════════════════════════════════════════════════════════
     // SESSION_ID — DÉTECTION ET AFFICHAGE SÉCURISÉ
-    //
-    // Flux post-paiement Stripe :
-    //   Stripe redirige vers :
-    //   https://botlings.github.io/Optinkedin/?session_id=cs_live_xxx
-    //
-    // Pipeline de sécurité :
-    //   1. getQueryParam()     → lit via URLSearchParams (jamais location.href brut)
-    //   2. isValidSessionId()  → valide préfixe + charset + longueur
-    //   3. textContent         → injection DOM sans risque XSS
-    //   4. replaceState()      → nettoie l'URL dans TOUS les cas
-    //      (valide ET invalide) pour éviter :
-    //      a. Partage accidentel du session_id dans l'URL copiée
-    //      b. Ré-affichage du bandeau si l'utilisateur rafraîchit
-    //      c. Fuite du session_id dans les logs de référents tiers
-    //   5. window.__premiumSessionId → exposé uniquement si valide,
-    //      pour les modules JS futurs (/api/recommendations).
-    //      Jamais la valeur brute non validée.
-    //
-    // En cas de valeur invalide : rejet silencieux, bandeau masqué,
-    // URL nettoyée. Aucun message d'erreur affiché (ne pas aider un
-    // attaquant à calibrer ses payloads).
     // ═══════════════════════════════════════════════════════════════════
     (function () {
       var rawSessionId = getQueryParam('session_id');
 
-      // Nettoyage systématique de l'URL dès qu'un paramètre session_id
-      // est détecté — qu'il soit valide ou non. Placé en premier pour
-      // garantir l'exécution même si une erreur survient plus bas.
       if (rawSessionId !== null) {
         try {
           window.history.replaceState(null, '', window.location.pathname);
         } catch (e) {
           // Navigation privée ou environnement restreint : silencieux.
-          // L'affichage du bandeau peut continuer sans le nettoyage d'URL.
         }
       }
 
-      // Aucun paramètre session_id dans l'URL → comportement normal.
       if (rawSessionId === null) { return; }
-
-      // Valeur présente mais format invalide → rejet silencieux.
-      // L'URL a déjà été nettoyée ci-dessus.
       if (!isValidSessionId(rawSessionId)) { return; }
-
-      // ── Valeur valide : affichage sécurisé du bandeau ──────────────
 
       var banner         = document.getElementById('premium-result-banner');
       var sessionDisplay = document.getElementById('premium-session-display');
       var closeBtn       = document.getElementById('premium-banner-close');
 
-      // Éléments DOM absents (ne devrait pas arriver, mais defensive coding).
       if (!banner || !sessionDisplay || !closeBtn) { return; }
 
-      // textContent uniquement — jamais innerHTML.
-      // escapeHtml() est appelé en couche supplémentaire bien que
-      // textContent soit déjà sûr par nature (aucune interprétation HTML).
       sessionDisplay.textContent = 'R\u00e9f. paiement\u00a0: ' + truncateSessionId(escapeHtml(rawSessionId));
-
-      // Expose le session_id validé pour les modules JS futurs.
-      // Intentionnel : window.__premiumSessionId est la seule variable
-      // globale portant cette valeur ; elle est typée string, validée,
-      // et utilisée uniquement pour des appels fetch() vers le backend.
       window.__premiumSessionId = rawSessionId;
 
-      // Affichage du bandeau.
       banner.classList.add('visible');
 
-      // Fermeture manuelle.
       closeBtn.addEventListener('click', function () {
         banner.classList.remove('visible');
       });
@@ -1937,8 +1984,7 @@
         try {
           localStorage.setItem(STORAGE_KEY, choice);
         } catch (e) {
-          // localStorage indisponible (navigation privée restrictive) :
-          // on masque quand même le bandeau pour cette session.
+          // localStorage indisponible : on masque quand même.
         }
         banner.hidden = true;
       }
@@ -1953,45 +1999,20 @@
 
     // ═══════════════════════════════════════════════════════════════════
     // CONFIGURATION API
-    // URL du backend Railway. Modifier uniquement quand le service
-    // Railway est provisionné et l'URL définitive connue.
     // ═══════════════════════════════════════════════════════════════════
     var API_BASE_URL = 'https://optinkedin-api.railway.app';
 
     // ═══════════════════════════════════════════════════════════════════
     // CSRF — récupération du token serveur
-    //
-    // Stratégie :
-    //   1. Au chargement de la page, on tente de récupérer un token CSRF
-    //      depuis GET /api/csrf-token (backend Railway).
-    //   2. Le token reçu (signé HMAC-SHA256, TTL 15 min) est mis en
-    //      cache dans une variable module-scope avec son expiration.
-    //   3. Avant chaque soumission de formulaire, on vérifie si le token
-    //      en cache est encore valide (marge de 30 s). Si expiré ou absent,
-    //      on en demande un nouveau au backend.
-    //   4. Si le backend est inaccessible (Sprint 1, hors ligne), on
-    //      génère un token client de substitution via crypto.getRandomValues
-    //      et on le marque comme "dégradé". Le backend rejettera ce token
-    //      avec 403 quand il sera actif — comportement attendu et documenté.
-    //
-    // Cette approche garantit :
-    //   - Zéro blocage utilisateur si le backend est absent.
-    //   - Sécurité réelle dès que le backend est en ligne.
-    //   - Pas de token long-lived en sessionStorage (TTL 15 min).
     // ═══════════════════════════════════════════════════════════════════
     var csrfCache = {
-      token: null,       // string | null
-      expiresAt: 0,      // timestamp Unix en secondes
-      degraded: false    // true = token client de substitution (pas de backend)
+      token: null,
+      expiresAt: 0,
+      degraded: false
     };
 
     var CSRF_REFRESH_MARGIN_SECONDS = 30;
 
-    /**
-     * Génère un token client de substitution (fallback sans backend).
-     * Ce token sera rejeté par le middleware CSRF serveur dès que le
-     * backend sera actif — c'est le comportement attendu.
-     */
     function generateFallbackCsrfToken() {
       var bytes = new Uint8Array(32);
       crypto.getRandomValues(bytes);
@@ -2000,21 +2021,12 @@
         .join('');
     }
 
-    /**
-     * Vérifie si le token en cache est encore utilisable.
-     * Retourne false si absent, expiré (avec marge), ou dégradé.
-     */
     function isCachedTokenFresh() {
       if (!csrfCache.token || csrfCache.degraded) { return false; }
       var nowSeconds = Math.floor(Date.now() / 1000);
       return csrfCache.expiresAt - nowSeconds > CSRF_REFRESH_MARGIN_SECONDS;
     }
 
-    /**
-     * Récupère un token CSRF valide.
-     * Tente d'abord le backend ; en cas d'échec, utilise le fallback client.
-     * Retourne une Promise<string> dans tous les cas.
-     */
     function fetchCsrfToken() {
       if (isCachedTokenFresh()) {
         return Promise.resolve(csrfCache.token);
@@ -2051,8 +2063,6 @@
       });
     }
 
-    // Préchargement au chargement de la page pour que la soumission
-    // du formulaire soit instantanée (pas d'attente réseau au clic).
     fetchCsrfToken();
 
     // ═══════════════════════════════════════════════════════════════════
@@ -2088,22 +2098,6 @@
               var urlInput    = form.querySelector('input[name="linkedin_url"]');
               var linkedinUrl = urlInput ? urlInput.value.trim() : '';
 
-              // ── Branchement vers le backend (Sprint 2) ─────────────
-              // Remplacer le bloc ci-dessous par l'appel fetch réel :
-              //
-              //   return fetch(API_BASE_URL + '/api/analyze', {
-              //     method: 'POST',
-              //     headers: {
-              //       'Content-Type': 'application/json',
-              //       'X-CSRF-Token': token
-              //     },
-              //     body: JSON.stringify({ url: linkedinUrl })
-              //   })
-              //   .then(function (res) { return res.json(); })
-              //   .then(function (data) { /* afficher résultats */ });
-              //
-              // ───────────────────────────────────────────────────────
-
               // Sprint 1 : backend non branché. Simule 2 s puis réactive.
               void token; void linkedinUrl;
               return new Promise(function (resolve) {
@@ -2118,6 +2112,140 @@
 
       attachSubmitGuard('form-hero', 'submit-hero');
       attachSubmitGuard('form-cta',  'submit-cta');
+    })();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // DROIT À L'OUBLI — RGPD art. 17
+    //
+    // Envoie DELETE /api/account avec email et/ou session_id.
+    // Validation côté client avant envoi :
+    //   - Au moins un champ rempli
+    //   - Format email basique
+    //   - Format session_id Stripe (même règle que isValidSessionId)
+    // L'endpoint répond toujours 200 (réponse ambiguë intentionnelle).
+    // ═══════════════════════════════════════════════════════════════════
+    (function () {
+      var form      = document.getElementById('form-forget');
+      var emailInput   = document.getElementById('forget-email');
+      var sessionInput = document.getElementById('forget-session');
+      var submitBtn    = document.getElementById('forget-submit');
+      var feedback     = document.getElementById('forget-feedback');
+
+      if (!form || !emailInput || !sessionInput || !submitBtn || !feedback) { return; }
+
+      /**
+       * Affiche un message de retour dans le bloc feedback.
+       * @param {string} message - Texte à afficher (textContent, jamais innerHTML).
+       * @param {'success'|'error'} type - Classe CSS appliquée.
+       */
+      function showFeedback(message, type) {
+        feedback.textContent = message;
+        feedback.className   = 'forget-feedback ' + type;
+      }
+
+      function hideFeedback() {
+        feedback.textContent = '';
+        feedback.className   = 'forget-feedback';
+      }
+
+      function markFieldError(input) {
+        input.classList.add('error');
+      }
+
+      function clearFieldErrors() {
+        emailInput.classList.remove('error');
+        sessionInput.classList.remove('error');
+      }
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        hideFeedback();
+        clearFieldErrors();
+
+        var email     = emailInput.value.trim().toLowerCase();
+        var sessionId = sessionInput.value.trim();
+
+        // Au moins un champ requis.
+        if (email.length === 0 && sessionId.length === 0) {
+          markFieldError(emailInput);
+          markFieldError(sessionInput);
+          showFeedback(
+            'Veuillez renseigner au moins votre adresse e-mail ou votre référence de paiement.',
+            'error'
+          );
+          return;
+        }
+
+        // Validation email si fourni.
+        if (email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          markFieldError(emailInput);
+          showFeedback('L\'adresse e-mail saisie n\'est pas valide.', 'error');
+          return;
+        }
+
+        // Validation session_id si fourni (même règle que isValidSessionId).
+        if (sessionId.length > 0 && !isValidSessionId(sessionId)) {
+          markFieldError(sessionInput);
+          showFeedback(
+            'La référence de paiement n\'est pas au bon format (ex: cs_live_… ou cs_test_…).',
+            'error'
+          );
+          return;
+        }
+
+        // Construction du corps de la requête — uniquement les champs remplis.
+        var body = {};
+        if (email.length > 0)     { body.email      = email; }
+        if (sessionId.length > 0) { body.session_id = sessionId; }
+
+        submitBtn.disabled   = true;
+        submitBtn.textContent = 'Suppression en cours…';
+
+        fetchCsrfToken()
+          .then(function (token) {
+            return fetch(API_BASE_URL + '/api/account', {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': token
+              },
+              body: JSON.stringify(body),
+              signal: (function () {
+                try { return AbortSignal.timeout(8000); } catch (e) { return undefined; }
+              })()
+            });
+          })
+          .then(function (res) {
+            // L'endpoint retourne 200 même si aucune donnée n'existait.
+            // On affiche un message de confirmation dans tous les cas 2xx.
+            if (res.ok) {
+              showFeedback(
+                '✓ Votre demande a été prise en compte. Toutes vos données ont été supprimées de nos systèmes actifs.',
+                'success'
+              );
+              form.reset();
+            } else {
+              // 4xx : erreur de validation côté serveur.
+              return res.json().then(function (data) {
+                var msg = (data && typeof data.error === 'string')
+                  ? data.error
+                  : 'Une erreur est survenue. Veuillez réessayer.';
+                showFeedback(msg, 'error');
+              });
+            }
+          })
+          .catch(function () {
+            // Réseau inaccessible (backend Railway hors ligne en Sprint 1).
+            showFeedback(
+              'Le service est temporairement indisponible. Votre demande sera traitée dès que possible — contactez-nous si le problème persiste.',
+              'error'
+            );
+          })
+          .finally(function () {
+            submitBtn.disabled   = false;
+            submitBtn.textContent = 'Supprimer mes données';
+          });
+      });
     })();
   </script>
 
