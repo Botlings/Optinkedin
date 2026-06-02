@@ -21,6 +21,10 @@ const store = new Map<string, PaymentSession>();
  * Enregistre une nouvelle session de paiement.
  * Écrase silencieusement une session existante avec le même ID
  * (cas de retry webhook Stripe — idempotent par design).
+ *
+ * L'email est normalisé en minuscules à l'écriture pour garantir
+ * la cohérence avec deleteSessionsByEmail (comparaison insensible
+ * à la casse).
  */
 export function createSession(
   sessionId: string,
@@ -30,7 +34,7 @@ export function createSession(
   const now = Math.floor(Date.now() / 1000);
   const session: PaymentSession = {
     sessionId,
-    email,
+    email: email.toLowerCase(),
     linkedinUrl,
     paidAt: now,
     expiresAt: now + Math.floor(SESSION_TTL_MS / 1000),
@@ -75,6 +79,39 @@ export function consumeSession(sessionId: string): boolean {
   session.used = true;
   store.set(sessionId, session);
   return true;
+}
+
+/**
+ * RGPD art. 17 — Droit à l'oubli.
+ * Supprime immédiatement une session par son ID Stripe.
+ * Retourne true si une session a été supprimée, false sinon.
+ */
+export function deleteSessionById(sessionId: string): boolean {
+  if (!store.has(sessionId)) {
+    return false;
+  }
+  store.delete(sessionId);
+  return true;
+}
+
+/**
+ * RGPD art. 17 — Droit à l'oubli.
+ * Supprime toutes les sessions associées à un email donné.
+ * La comparaison est insensible à la casse : les emails sont stockés
+ * en minuscules par createSession, et le paramètre est normalisé ici
+ * également pour garantir la cohérence même en cas d'appel direct.
+ * Retourne le nombre de sessions supprimées.
+ */
+export function deleteSessionsByEmail(email: string): number {
+  const normalizedEmail = email.toLowerCase();
+  let count = 0;
+  for (const [id, session] of store.entries()) {
+    if (session.email === normalizedEmail) {
+      store.delete(id);
+      count += 1;
+    }
+  }
+  return count;
 }
 
 /**

@@ -4,6 +4,7 @@ import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
 import csrfRouter from './routes/csrf.js';
 import webhookRouter from './routes/webhook.js';
+import forgetRouter from './routes/forget.js';
 import { csrfMiddleware } from './middleware/csrf.js';
 import type { Request, Response, NextFunction } from 'express';
 
@@ -33,7 +34,7 @@ app.use(
 app.use(
   cors({
     origin: allowedOrigin,
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'DELETE'],
     allowedHeaders: ['Content-Type', 'X-CSRF-Token'],
     maxAge: 600,
   })
@@ -72,7 +73,25 @@ const globalApiLimiter = rateLimit({
 
 app.use('/api', globalApiLimiter);
 
-// ─── Middleware CSRF (routes POST /api — hors webhook Stripe) ─────────────────
+// ─── Rate limiting spécifique sur /api/account (droit à l'oubli) ─────────────
+//
+// Fenêtre plus restrictive : 5 demandes par IP toutes les 15 minutes.
+// Prévient le scraping de confirmations de suppression pour énumérer
+// les comptes existants (même si la réponse est volontairement ambiguë).
+const forgetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: {
+    error: 'Trop de demandes de suppression. Réessayez dans 15 minutes.',
+    code: 'RATE_LIMIT_EXCEEDED',
+  },
+});
+
+app.use('/api/account', forgetLimiter);
+
+// ─── Middleware CSRF (routes POST + DELETE /api — hors webhook Stripe) ─────────
 //
 // Le webhook Stripe est exempté du CSRF : l'authenticité est garantie
 // par la vérification de signature HMAC dans webhookRouter lui-même.
@@ -85,6 +104,9 @@ app.use('/api', csrfMiddleware);
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 app.use('/api/csrf-token', csrfRouter);
+
+// RGPD art. 17 — Droit à l'oubli
+app.use('/api/account', forgetRouter);
 
 app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
