@@ -1409,7 +1409,6 @@
   -->
   <script>
     (function () {
-      // Génère 16 octets aléatoires → base64url (sans +, /, =)
       var randomBytes = new Uint8Array(16);
       crypto.getRandomValues(randomBytes);
       var nonce = btoa(String.fromCharCode.apply(null, randomBytes))
@@ -1417,11 +1416,8 @@
         .replace(/\//g, '_')
         .replace(/=+$/, '');
 
-      // Expose le nonce pour usage par le script principal
       window.__cspNonce = nonce;
 
-      // Met à jour la meta CSP : remplace le placeholder par le vrai nonce
-      // et supprime toute trace de 'unsafe-inline' dans script-src
       var cspMeta = document.getElementById('csp-meta');
       if (cspMeta) {
         var updatedContent = cspMeta.getAttribute('content')
@@ -1925,13 +1921,12 @@
 
   <!--
     ─── SCRIPT PRINCIPAL (noncé) ─────────────────────────────────────
-    Ce bloc est injecté dynamiquement par le script bootstrap avec le nonce
-    correct, garantissant qu'il est autorisé par la CSP sans 'unsafe-inline'.
-    Le contenu est identique à l'original — seule la livraison change.
+    Livré via type="text/plain" puis injecté avec le nonce correct par
+    l'injecteur ci-dessous. Garantit la conformité CSP sans unsafe-inline.
   -->
   <script id="main-script-template" type="text/plain">
     // ═══════════════════════════════════════════════════════════════════
-    // SÉCURITÉ — HELPERS XSS
+    // SÉCURITÉ — HELPERS XSS & VALIDATION
     // ═══════════════════════════════════════════════════════════════════
 
     function escapeHtml(raw) {
@@ -1954,6 +1949,19 @@
       }
     }
 
+    /**
+     * Valide un session_id Stripe avant toute réutilisation.
+     *
+     * Règles strictes :
+     *   - Doit être une chaîne de caractères
+     *   - Longueur entre 20 et 256 caractères
+     *   - Doit commencer par "cs_live_" ou "cs_test_"
+     *   - Caractères autorisés uniquement : alphanumérique, underscore, tiret
+     *
+     * Cette fonction est la SEULE porte d'entrée pour toute lecture
+     * ou réutilisation d'un session_id, qu'il provienne de l'URL,
+     * d'un champ de formulaire ou de window.__premiumSessionId.
+     */
     function isValidSessionId(value) {
       if (typeof value !== 'string') { return false; }
       if (value.length < 20 || value.length > 256) { return false; }
@@ -1966,17 +1974,36 @@
       return /^[A-Za-z0-9_\-]+$/.test(value);
     }
 
+    /**
+     * Tronque un session_id pour l'affichage public (bandeau, logs UI).
+     * Ne doit jamais être appelé sur une valeur non validée par isValidSessionId.
+     */
     function truncateSessionId(sessionId) {
       if (sessionId.length <= 16) { return sessionId; }
       return sessionId.slice(0, 12) + '\u2026' + sessionId.slice(-4);
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // SESSION_ID — DÉTECTION ET AFFICHAGE SÉCURISÉ
+    // SESSION_ID — EXTRACTION, VALIDATION ET NETTOYAGE
+    //
+    // Flux sécurisé :
+    //   1. Extraction brute depuis l'URL (valeur non fiable)
+    //   2. Nettoyage immédiat de l'URL via history.replaceState,
+    //      qu'il soit valide ou non — le param ne doit jamais rester
+    //      visible dans la barre d'adresse ni dans l'historique
+    //   3. Validation stricte via isValidSessionId
+    //   4. Si invalide → abandon silencieux, aucune donnée n'est
+    //      stockée ni affichée
+    //   5. Si valide → stockage dans window.__premiumSessionId,
+    //      affichage dans le bandeau et pré-remplissage du champ
+    //      forget-session pour faciliter le droit à l'oubli
     // ═══════════════════════════════════════════════════════════════════
     (function () {
       var rawSessionId = getQueryParam('session_id');
 
+      // Nettoyage de l'URL en priorité absolue, indépendamment de la
+      // validité — évite que le token reste dans l'historique navigateur
+      // ou soit partagé accidentellement via copier/coller de l'URL.
       if (rawSessionId !== null) {
         try {
           window.history.replaceState(null, '', window.location.pathname);
@@ -1985,23 +2012,46 @@
         }
       }
 
+      // Abandon si absent ou invalide : aucune trace dans le DOM ni
+      // dans les variables globales.
       if (rawSessionId === null) { return; }
       if (!isValidSessionId(rawSessionId)) { return; }
 
+      // À ce stade rawSessionId est garanti valide (format Stripe strict).
+      var validSessionId = rawSessionId;
+
+      // Stockage global — accessible aux autres modules (ex. future
+      // requête API de récupération des recommandations).
+      window.__premiumSessionId = validSessionId;
+
+      // ── Bandeau de confirmation paiement ──────────────────────────
       var banner         = document.getElementById('premium-result-banner');
       var sessionDisplay = document.getElementById('premium-session-display');
       var closeBtn       = document.getElementById('premium-banner-close');
 
-      if (!banner || !sessionDisplay || !closeBtn) { return; }
+      if (banner && sessionDisplay && closeBtn) {
+        // textContent est safe par nature — pas d'injection HTML possible.
+        // truncateSessionId opère sur une valeur déjà validée.
+        sessionDisplay.textContent = 'R\u00e9f. paiement\u00a0: ' + truncateSessionId(validSessionId);
 
-      sessionDisplay.textContent = 'R\u00e9f. paiement\u00a0: ' + truncateSessionId(escapeHtml(rawSessionId));
-      window.__premiumSessionId = rawSessionId;
+        banner.classList.add('visible');
 
-      banner.classList.add('visible');
+        closeBtn.addEventListener('click', function () {
+          banner.classList.remove('visible');
+        });
+      }
 
-      closeBtn.addEventListener('click', function () {
-        banner.classList.remove('visible');
-      });
+      // ── Pré-remplissage du champ droit à l'oubli ─────────────────
+      // Facilite la demande RGPD art. 17 pour l'utilisateur qui vient
+      // de payer : le champ est pré-rempli avec la référence validée.
+      // Uniquement si le champ est vide (ne pas écraser une saisie
+      // manuelle en cas de rechargement partiel).
+      var forgetSessionInput = document.getElementById('forget-session');
+      if (forgetSessionInput && forgetSessionInput.value.trim() === '') {
+        // setAttribute setValue n'est pas disponible — on passe par
+        // la propriété .value pour ne pas déclencher de mutation HTML.
+        forgetSessionInput.value = validSessionId;
+      }
     })();
 
     // ═══════════════════════════════════════════════════════════════════
@@ -2188,6 +2238,9 @@
         clearFieldErrors();
 
         var email     = emailInput.value.trim().toLowerCase();
+        // Relit la valeur du champ au moment de la soumission — peut
+        // avoir été pré-remplie par le flux session_id URL ou saisie
+        // manuellement. Dans les deux cas, revalidation obligatoire.
         var sessionId = sessionInput.value.trim();
 
         if (email.length === 0 && sessionId.length === 0) {
@@ -2206,6 +2259,10 @@
           return;
         }
 
+        // Validation du session_id via isValidSessionId — même règle
+        // que pour la lecture URL. Tout ce qui vient du champ (saisie
+        // manuelle ou pré-remplissage) doit passer ce filtre avant
+        // d'être envoyé au backend.
         if (sessionId.length > 0 && !isValidSessionId(sessionId)) {
           markFieldError(sessionInput);
           showFeedback(
@@ -2275,7 +2332,7 @@
 
     Ce second script sans nonce est inévitable sur hébergement statique :
     il est minimal (aucune logique métier, aucune donnée utilisateur)
-    et sa surface d'attaque est nulle puisqu'il ne fait que déplacer
+    et sa surface d'attaque est nulle puisqu'ilpuisqu'il ne fait que déplacer
     du code déjà présent dans la page vers une balise noncée.
     Une fois un vrai serveur disponible, les deux scripts bootstrap/injecteur
     disparaîtront au profit d'un nonce HTTP généré par requête.
