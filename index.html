@@ -4,10 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!--
-    CSP : 'unsafe-inline' supprimé de script-src.
+    CSP : 'unsafe-inline' supprimé de script-src ET de style-src.
     Un nonce cryptographique est généré au chargement par le script bootstrap
     ci-dessous (le seul élément sans nonce, car il doit s'exécuter en premier).
-    Tous les autres scripts inline reçoivent ce nonce via DOM manipulation.
+    Le même nonce est appliqué à :
+      - script-src  : remplace BOOTSTRAP_NONCE_PLACEHOLDER
+      - style-src   : remplace 'unsafe-inline'
+      - <style>     : attribut nonce apposé via DOM par le bootstrap
     GitHub Pages étant statique, la génération côté serveur est impossible —
     cette approche est le meilleur compromis disponible sur hébergement statique.
   -->
@@ -30,7 +33,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <style>
+  <style id="main-styles">
     /* ─── Reset & Base ─────────────────────────────────────────────── */
     *, *::before, *::after {
       box-sizing: border-box;
@@ -843,7 +846,7 @@
       display: flex;
       gap: 10px;
       justify-content: center;
-      flex-wrap;
+      flex-wrap: wrap;
       position: relative;
       z-index: 1;
     }
@@ -1391,21 +1394,19 @@
   <!--
     ─── SCRIPT BOOTSTRAP CSP NONCE ──────────────────────────────────────
     Ce script est le SEUL élément sans attribut nonce.
-    Il doit s'exécuter avant tout autre script pour :
-      1. Générer un nonce cryptographiquement aléatoire (16 octets → base64url)
-      2. Mettre à jour la meta CSP pour remplacer BOOTSTRAP_NONCE_PLACEHOLDER
-         par 'nonce-<valeur>' — élimine 'unsafe-inline' des outils d'audit
-      3. Exposer window.__cspNonce pour que le bloc principal puisse créer
-         ses propres éléments <script nonce="..."> si nécessaire à l'avenir
+    Il s'exécute en premier et :
+      1. Génère un nonce cryptographiquement aléatoire (16 octets → base64url)
+      2. Met à jour la meta CSP :
+           - script-src : remplace 'nonce-BOOTSTRAP_NONCE_PLACEHOLDER'
+             par 'nonce-<valeur>'
+           - style-src  : remplace 'unsafe-inline' par 'nonce-<valeur>'
+      3. Appose l'attribut nonce sur la balise <style id="main-styles">
+         afin qu'elle soit autorisée par la directive style-src mise à jour
+      4. Expose window.__cspNonce pour l'injecteur du script principal
 
-    Contrainte GitHub Pages : hébergement 100% statique, pas de serveur HTTP
-    capable de générer un nonce par requête. Ce bootstrap est donc le seul
-    compromis viable — il est minimal et ne traite aucune donnée utilisateur.
-
-    Important : la meta CSP déclarée statiquement dans <head> avec
-    BOOTSTRAP_NONCE_PLACEHOLDER permet au navigateur de parser la directive
-    dès le chargement initial. Ce script la met à jour immédiatement pour
-    que le nonce réel soit en place avant l'exécution du bloc principal.
+    Contrainte GitHub Pages : hébergement 100% statique, génération
+    serveur impossible. Ce bootstrap minimal est le seul compromis viable.
+    Aucune donnée utilisateur n'est traitée ici.
   -->
   <script>
     (function () {
@@ -1418,12 +1419,23 @@
 
       window.__cspNonce = nonce;
 
+      // ── Mise à jour de la meta CSP ──────────────────────────────────
+      // Remplace le placeholder script-src ET unsafe-inline dans style-src
+      // en une seule passe sur le contenu de l'attribut.
       var cspMeta = document.getElementById('csp-meta');
       if (cspMeta) {
-        var updatedContent = cspMeta.getAttribute('content')
+        var updated = cspMeta.getAttribute('content')
           .replace("'nonce-BOOTSTRAP_NONCE_PLACEHOLDER'", "'nonce-" + nonce + "'")
           .replace("'unsafe-inline'", "'nonce-" + nonce + "'");
-        cspMeta.setAttribute('content', updatedContent);
+        cspMeta.setAttribute('content', updated);
+      }
+
+      // ── Nonce sur le bloc <style> statique ─────────────────────────
+      // Sans cet attribut, style-src nonce-<valeur> bloquerait le bloc
+      // <style> existant dès que la CSP est évaluée par le navigateur.
+      var mainStyles = document.getElementById('main-styles');
+      if (mainStyles) {
+        mainStyles.setAttribute('nonce', nonce);
       }
     })();
   </script>
@@ -1957,10 +1969,6 @@
      *   - Longueur entre 20 et 256 caractères
      *   - Doit commencer par "cs_live_" ou "cs_test_"
      *   - Caractères autorisés uniquement : alphanumérique, underscore, tiret
-     *
-     * Cette fonction est la SEULE porte d'entrée pour toute lecture
-     * ou réutilisation d'un session_id, qu'il provienne de l'URL,
-     * d'un champ de formulaire ou de window.__premiumSessionId.
      */
     function isValidSessionId(value) {
       if (typeof value !== 'string') { return false; }
@@ -1985,25 +1993,10 @@
 
     // ═══════════════════════════════════════════════════════════════════
     // SESSION_ID — EXTRACTION, VALIDATION ET NETTOYAGE
-    //
-    // Flux sécurisé :
-    //   1. Extraction brute depuis l'URL (valeur non fiable)
-    //   2. Nettoyage immédiat de l'URL via history.replaceState,
-    //      qu'il soit valide ou non — le param ne doit jamais rester
-    //      visible dans la barre d'adresse ni dans l'historique
-    //   3. Validation stricte via isValidSessionId
-    //   4. Si invalide → abandon silencieux, aucune donnée n'est
-    //      stockée ni affichée
-    //   5. Si valide → stockage dans window.__premiumSessionId,
-    //      affichage dans le bandeau et pré-remplissage du champ
-    //      forget-session pour faciliter le droit à l'oubli
     // ═══════════════════════════════════════════════════════════════════
     (function () {
       var rawSessionId = getQueryParam('session_id');
 
-      // Nettoyage de l'URL en priorité absolue, indépendamment de la
-      // validité — évite que le token reste dans l'historique navigateur
-      // ou soit partagé accidentellement via copier/coller de l'URL.
       if (rawSessionId !== null) {
         try {
           window.history.replaceState(null, '', window.location.pathname);
@@ -2012,44 +2005,27 @@
         }
       }
 
-      // Abandon si absent ou invalide : aucune trace dans le DOM ni
-      // dans les variables globales.
       if (rawSessionId === null) { return; }
       if (!isValidSessionId(rawSessionId)) { return; }
 
-      // À ce stade rawSessionId est garanti valide (format Stripe strict).
       var validSessionId = rawSessionId;
 
-      // Stockage global — accessible aux autres modules (ex. future
-      // requête API de récupération des recommandations).
       window.__premiumSessionId = validSessionId;
 
-      // ── Bandeau de confirmation paiement ──────────────────────────
       var banner         = document.getElementById('premium-result-banner');
       var sessionDisplay = document.getElementById('premium-session-display');
       var closeBtn       = document.getElementById('premium-banner-close');
 
       if (banner && sessionDisplay && closeBtn) {
-        // textContent est safe par nature — pas d'injection HTML possible.
-        // truncateSessionId opère sur une valeur déjà validée.
         sessionDisplay.textContent = 'R\u00e9f. paiement\u00a0: ' + truncateSessionId(validSessionId);
-
         banner.classList.add('visible');
-
         closeBtn.addEventListener('click', function () {
           banner.classList.remove('visible');
         });
       }
 
-      // ── Pré-remplissage du champ droit à l'oubli ─────────────────
-      // Facilite la demande RGPD art. 17 pour l'utilisateur qui vient
-      // de payer : le champ est pré-rempli avec la référence validée.
-      // Uniquement si le champ est vide (ne pas écraser une saisie
-      // manuelle en cas de rechargement partiel).
       var forgetSessionInput = document.getElementById('forget-session');
       if (forgetSessionInput && forgetSessionInput.value.trim() === '') {
-        // setAttribute setValue n'est pas disponible — on passe par
-        // la propriété .value pour ne pas déclencher de mutation HTML.
         forgetSessionInput.value = validSessionId;
       }
     })();
@@ -2238,9 +2214,6 @@
         clearFieldErrors();
 
         var email     = emailInput.value.trim().toLowerCase();
-        // Relit la valeur du champ au moment de la soumission — peut
-        // avoir été pré-remplie par le flux session_id URL ou saisie
-        // manuellement. Dans les deux cas, revalidation obligatoire.
         var sessionId = sessionInput.value.trim();
 
         if (email.length === 0 && sessionId.length === 0) {
@@ -2259,10 +2232,6 @@
           return;
         }
 
-        // Validation du session_id via isValidSessionId — même règle
-        // que pour la lecture URL. Tout ce qui vient du champ (saisie
-        // manuelle ou pré-remplissage) doit passer ce filtre avant
-        // d'être envoyé au backend.
         if (sessionId.length > 0 && !isValidSessionId(sessionId)) {
           markFieldError(sessionInput);
           showFeedback(
@@ -2332,7 +2301,7 @@
 
     Ce second script sans nonce est inévitable sur hébergement statique :
     il est minimal (aucune logique métier, aucune donnée utilisateur)
-    et sa surface d'attaque est nulle puisqu'ilpuisqu'il ne fait que déplacer
+    et sa surface d'attaque est nulle puisqu'il ne fait que déplacer
     du code déjà présent dans la page vers une balise noncée.
     Une fois un vrai serveur disponible, les deux scripts bootstrap/injecteur
     disparaîtront au profit d'un nonce HTTP généré par requête.
